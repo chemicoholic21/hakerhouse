@@ -83,12 +83,19 @@ export default async function UserProfilePage({
     if (dbData.top_repos_json) {
       const repos = JSON.parse(dbData.top_repos_json)
       if (Array.isArray(repos)) {
-        contributions = repos.map((r: any) => ({
-          kind: "commit", // Default to commit
-          repo: r.full_name || r.name,
-          title: r.description || "Active contributor",
-          time: "Recent",
-        }))
+        contributions = repos.map((r: any) => {
+          const repoName = r.full_name || (r.ownerLogin ? `${r.ownerLogin}/${r.name}` : r.name)
+          const prCount = r.userPRs || 0
+          const stars = r.stars || 0
+          
+          return {
+            kind: "commit", // Default to commit as we don't have specific types for each
+            repo: repoName,
+            title: `${prCount} PR${prCount !== 1 ? 's' : ''} contributed · ${stars.toLocaleString()} stars`,
+            time: r.language || "Recent",
+            score: r.score,
+          }
+        })
       }
     }
   } catch (e) {
@@ -116,6 +123,13 @@ export default async function UserProfilePage({
         skillsStrong={skillsStrong}
         skillsAlso={skillsAlso}
         contributions={contributions}
+        scores={{
+          backend: dbData.backend_score,
+          frontend: dbData.frontend_score,
+          devops: dbData.devops_score,
+          data: dbData.data_score,
+          ai: dbData.ai_score,
+        }}
       />
     </div>
   )

@@ -42,6 +42,13 @@ interface UserProfileViewProps {
   skillsStrong?: string[]
   skillsAlso?: string[]
   contributions?: any[]
+  scores?: {
+    backend?: number
+    frontend?: number
+    devops?: number
+    data?: number
+    ai?: number
+  }
 }
 
 export function UserProfileView({ 
@@ -51,7 +58,8 @@ export function UserProfileView({
   weeklyScore, 
   skillsStrong = [], 
   skillsAlso = [],
-  contributions = [...prototypeContributions]
+  contributions = [...prototypeContributions],
+  scores
 }: UserProfileViewProps) {
   return (
     <>
@@ -102,10 +110,47 @@ export function UserProfileView({
                 <span className="text-3xl font-bold tabular-nums">#{weeklyRank || "?"}</span>
                 <span className="text-muted-foreground text-sm">on the leaderboard</span>
               </div>
-              <p className="text-sm tabular-nums mt-2">
-                {(weeklyScore || 0).toLocaleString("en-US", { maximumFractionDigits: 1 })} impact score
-              </p>
-              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+              <div className="mt-4 space-y-2 border-t border-dashed border-foreground/30 pt-4">
+                <p className="text-sm font-bold tabular-nums flex justify-between">
+                  <span>Total Score</span>
+                  <span>{(weeklyScore || 0).toLocaleString("en-US", { maximumFractionDigits: 1 })}</span>
+                </p>
+                {scores && (
+                  <div className="space-y-1 text-xs text-muted-foreground uppercase tracking-tight">
+                    {scores.backend ? (
+                      <div className="flex justify-between">
+                        <span>Backend</span>
+                        <span>{scores.backend.toLocaleString()}</span>
+                      </div>
+                    ) : null}
+                    {scores.frontend ? (
+                      <div className="flex justify-between">
+                        <span>Frontend</span>
+                        <span>{scores.frontend.toLocaleString()}</span>
+                      </div>
+                    ) : null}
+                    {scores.devops ? (
+                      <div className="flex justify-between">
+                        <span>DevOps</span>
+                        <span>{scores.devops.toLocaleString()}</span>
+                      </div>
+                    ) : null}
+                    {scores.data ? (
+                      <div className="flex justify-between">
+                        <span>Data</span>
+                        <span>{scores.data.toLocaleString()}</span>
+                      </div>
+                    ) : null}
+                    {scores.ai ? (
+                      <div className="flex justify-between">
+                        <span>AI</span>
+                        <span>{scores.ai.toLocaleString()}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-4 leading-relaxed italic">
                 Ranked by total impact score across all active projects.
               </p>
             </section>
@@ -181,9 +226,16 @@ export function UserProfileView({
                       </div>
                       <p className="text-sm mt-1 leading-snug">{c.title || "Latest activity"}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground tabular-nums shrink-0 pt-0.5">
-                      {c.time || "Recent"}
-                    </span>
+                    <div className="flex flex-col items-end gap-1 shrink-0 pt-0.5">
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {c.time || "Recent"}
+                      </span>
+                      {c.score !== undefined && (
+                        <span className="text-[10px] font-bold bg-foreground/5 border border-foreground/10 px-1 py-0.5 rounded-sm tabular-nums">
+                          {Math.round(c.score).toLocaleString()} impact
+                        </span>
+                      )}
+                    </div>
                   </Link>
                 )
               })}
