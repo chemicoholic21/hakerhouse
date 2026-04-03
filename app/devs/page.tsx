@@ -15,7 +15,7 @@ const ITEMS_PER_PAGE = 50
 
 async function getDevs(
   page: number, 
-  filters: { skill?: string; language?: string; country?: string; openTo?: string }
+  filters: { skill?: string; language?: string; country?: string; openTo?: string; username?: string; location?: string; topic?: string }
 ) {
   const offset = (page - 1) * ITEMS_PER_PAGE
   
@@ -38,6 +38,21 @@ async function getDevs(
   if (filters.country && filters.country !== 'all') {
     conditions.push(`l.location ILIKE $${params.length + 1}`)
     params.push(`%${filters.country}%`)
+  }
+
+  if (filters.location) {
+    conditions.push(`l.location ILIKE $${params.length + 1}`)
+    params.push(`%${filters.location}%`)
+  }
+
+  if (filters.topic) {
+    conditions.push(`(l.unique_skills_json::text ILIKE $${params.length + 1} OR a.languages_json::text ILIKE $${params.length + 1})`)
+    params.push(`%${filters.topic}%`)
+  }
+
+  if (filters.username) {
+    conditions.push(`(l.username ILIKE $${params.length + 1} OR l.name ILIKE $${params.length + 1})`)
+    params.push(`%${filters.username}%`)
   }
 
   // "openTo" logic could be added here if the DB supports it. 
@@ -139,8 +154,11 @@ export default async function DevsPage({
   const language = typeof resolvedParams.language === 'string' ? resolvedParams.language : undefined
   const country = typeof resolvedParams.country === 'string' ? resolvedParams.country : undefined
   const openTo = typeof resolvedParams.openTo === 'string' ? resolvedParams.openTo : undefined
+  const username = typeof resolvedParams.username === 'string' ? resolvedParams.username : undefined
+  const location = typeof resolvedParams.location === 'string' ? resolvedParams.location : undefined
+  const topic = typeof resolvedParams.topic === 'string' ? resolvedParams.topic : undefined
 
-  const { devs, totalItems, totalPages } = await getCachedDevs(page, { skill, language, country, openTo })
+  const { devs, totalItems, totalPages } = await getCachedDevs(page, { skill, language, country, openTo, username, location, topic })
 
   return (
     <div className="min-h-screen">

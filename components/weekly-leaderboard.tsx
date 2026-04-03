@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { TrendingUp, User } from "lucide-react"
+import { TrendingUp, User, Search } from "lucide-react"
 import { sql } from "@/lib/db"
 
 function formatRank(n: number) {
@@ -35,6 +35,18 @@ export async function WeeklyLeaderboard() {
           <TrendingUp className="w-5 h-5 shrink-0" strokeWidth={2.5} />
           Leaderboard
         </h2>
+      </div>
+
+      <div className="mb-4">
+        <form action="/devs" method="GET" className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            name="username"
+            placeholder="Search engineer..."
+            className="w-full bg-background border-2 border-foreground pl-10 pr-3 py-1.5 text-sm focus:outline-none focus:bg-foreground focus:text-background placeholder:text-muted-foreground"
+          />
+        </form>
       </div>
 
       <div className="border-y border-foreground">
