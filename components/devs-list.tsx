@@ -150,29 +150,6 @@ export function DevsList({
     <>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-highlight">Find Developers</h2>
-        <div className="flex border-2 border-foreground">
-          <button
-            type="button"
-            onClick={() => updateFilter("openTo", "all")}
-            className={`px-3 py-1 text-sm ${currentOpenTo === "all" ? "bg-foreground text-background" : "hover:bg-foreground/10"}`}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => updateFilter("openTo", "mentorship")}
-            className={`px-3 py-1 text-sm ${currentOpenTo === "mentorship" ? "bg-foreground text-background" : "hover:bg-foreground/10"}`}
-          >
-            Mentorship
-          </button>
-          <button
-            type="button"
-            onClick={() => updateFilter("openTo", "work")}
-            className={`px-3 py-1 text-sm ${currentOpenTo === "work" ? "bg-foreground text-background" : "hover:bg-foreground/10"}`}
-          >
-            Work
-          </button>
-        </div>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
