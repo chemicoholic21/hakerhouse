@@ -2,8 +2,8 @@ import { Header } from "@/components/header"
 import { sql } from "@/lib/db"
 import { DevsList, type DevRow } from "@/components/devs-list"
 import { languages, countries, skillsList } from "@/lib/data"
-import { unstable_cache } from "next/cache"
 import { buildPageMetadata } from "@/lib/seo"
+import { getCache, setCache } from "@/lib/cache"
 
 export const metadata = buildPageMetadata({
   title: "Developers",
@@ -23,8 +23,6 @@ async function getDevs(
   const conditions: string[] = []
   const params: any[] = []
 
-  // Note: We use string matching for JSON fields as a simple optimization 
-  // without knowing the exact DB schema extensions (GIN indexes, etc).
   if (filters.skill && filters.skill !== 'all') {
     conditions.push(`l.unique_skills_json::text ILIKE $${params.length + 1}`)
     params.push(`%${filters.skill}%`)
@@ -55,14 +53,10 @@ async function getDevs(
     params.push(`%${filters.username}%`)
   }
 
-  // "openTo" logic could be added here if the DB supports it. 
-  // For now we ignore it or implement a placeholder if field exists.
-
   const whereClause = conditions.length > 0 
     ? 'WHERE ' + conditions.join(' AND ') 
     : ''
 
-  // Execute Count and Data queries in parallel
   const [countResult, dbData] = await Promise.all([
     sql.query(
       `
@@ -94,7 +88,6 @@ async function getDevs(
 
   const totalItems = Number(countResult[0].count)
 
-  // Process only the fetched page
   const devs: DevRow[] = dbData.map((row: any) => {
     let skills: string[] = []
     try {
@@ -136,12 +129,24 @@ async function getDevs(
   }
 }
 
-// Wrap in cache
-const getCachedDevs = unstable_cache(
-  async (page, filters) => getDevs(page, filters),
-  ['devs-list-v1'], 
-  { revalidate: 60, tags: ['devs'] }
-)
+// Custom Redis-backed cache for DevsPage
+async function getCachedDevs(page: number, filters: any) {
+  const cacheKey = `devs:v1:p${page}:${JSON.stringify(filters)}`
+  
+  // Try to get from Redis
+  const cached = await getCache<any>(cacheKey)
+  if (cached) {
+    return cached
+  }
+
+  // If not in Redis, fetch from DB
+  const data = await getDevs(page, filters)
+  
+  // Save to Redis (TTL 60 seconds matching original revalidate)
+  await setCache(cacheKey, data, 60)
+  
+  return data
+}
 
 export default async function DevsPage({
   searchParams,
