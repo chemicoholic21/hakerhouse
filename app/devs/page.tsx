@@ -3,7 +3,7 @@ import { sql } from "@/lib/db"
 import { DevsList, type DevRow } from "@/components/devs-list"
 import { languages, countries, skillsList } from "@/lib/data"
 import { buildPageMetadata } from "@/lib/seo"
-import { getCache, setCache } from "@/lib/cache"
+import { withCache } from "@/lib/cache"
 
 export const metadata = buildPageMetadata({
   title: "Developers",
@@ -129,23 +129,9 @@ async function getDevs(
   }
 }
 
-// Custom Redis-backed cache for DevsPage
 async function getCachedDevs(page: number, filters: any) {
   const cacheKey = `devs:v1:p${page}:${JSON.stringify(filters)}`
-  
-  // Try to get from Redis
-  const cached = await getCache<any>(cacheKey)
-  if (cached) {
-    return cached
-  }
-
-  // If not in Redis, fetch from DB
-  const data = await getDevs(page, filters)
-  
-  // Save to Redis (TTL 60 seconds matching original revalidate)
-  await setCache(cacheKey, data, 60)
-  
-  return data
+  return withCache(cacheKey, () => getDevs(page, filters), 60)
 }
 
 export default async function DevsPage({
