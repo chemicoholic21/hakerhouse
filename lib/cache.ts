@@ -1,5 +1,5 @@
 // lib/cache.ts
-import { redis } from "./redis"
+import { getRedis } from "./redis"
 
 export async function withCache<T>(
   key: string,
@@ -7,6 +7,7 @@ export async function withCache<T>(
   ttlSeconds = 30
 ): Promise<T> {
   try {
+    const redis = getRedis()
     const cached = await redis.get<T>(key)
     if (cached !== null) {
       return cached
