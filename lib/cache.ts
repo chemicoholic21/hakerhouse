@@ -1,29 +1,22 @@
-import redis from "./redis"
+// lib/cache.ts
+import { redis } from "./redis"
 
-export async function getCache<T>(key: string): Promise<T | null> {
+export async function withCache<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  ttlSeconds = 30
+): Promise<T> {
   try {
-    const data = await redis.get(key)
-    if (!data) return null
-    return JSON.parse(data) as T
-  } catch (error) {
-    console.error("Redis get error:", error)
-    return null
-  }
-}
+    const cached = await redis.get<T>(key)
+    if (cached !== null) {
+      return cached
+    }
 
-export async function setCache(key: string, value: any, ttlSeconds: number = 3600): Promise<void> {
-  try {
-    const data = JSON.stringify(value)
-    await redis.set(key, data, "EX", ttlSeconds)
+    const data = await fetcher()
+    await redis.set(key, JSON.stringify(data), { ex: ttlSeconds })
+    return data
   } catch (error) {
-    console.error("Redis set error:", error)
-  }
-}
-
-export async function delCache(key: string): Promise<void> {
-  try {
-    await redis.del(key)
-  } catch (error) {
-    console.error("Redis del error:", error)
+    console.error("Redis cache error, falling through to fetcher:", error)
+    return fetcher()
   }
 }
