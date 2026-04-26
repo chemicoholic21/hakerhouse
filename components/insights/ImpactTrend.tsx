@@ -10,7 +10,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const data = [
+interface ImpactTrendProps {
+  data?: {
+    day: string;
+    avg_impact: number;
+  }[];
+}
+
+const defaultData = [
   { day: "1", impact: 120 },
   { day: "5", impact: 130 },
   { day: "10", impact: 125 },
@@ -20,11 +27,16 @@ const data = [
   { day: "30", impact: 180 },
 ];
 
-export function ImpactTrend() {
+export function ImpactTrend({ data }: ImpactTrendProps) {
+  const chartData = data?.map((item, i) => ({
+    day: new Date(item.day).getDate().toString(),
+    impact: Math.round(item.avg_impact)
+  })) || defaultData;
+
   return (
     <div className="w-full h-[200px] font-mono text-xs">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
+        <LineChart data={chartData} margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
           <CartesianGrid stroke="#1a1a1a" vertical={false} />
           <XAxis dataKey="day" stroke="#4a4a4a" tick={{ fill: "#6b7280", fontSize: 10 }} tickLine={false} axisLine={{ stroke: "#333" }} />
           <YAxis stroke="#4a4a4a" tick={{ fill: "#6b7280", fontSize: 10 }} tickLine={false} axisLine={false} />
@@ -40,3 +52,4 @@ export function ImpactTrend() {
     </div>
   );
 }
+

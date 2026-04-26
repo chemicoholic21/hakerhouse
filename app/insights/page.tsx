@@ -5,7 +5,8 @@ import { EngineerDistribution } from "@/components/insights/EngineerDistribution
 import { SkillsRadar } from "@/components/insights/SkillsRadar"
 import { ImpactTrend } from "@/components/insights/ImpactTrend"
 import { buildPageMetadata } from "@/lib/seo"
-import { GET } from "@/app/api/insights/map/route"
+import { GET as getMapRoute } from "@/app/api/insights/map/route"
+import { GET as getStatsRoute } from "@/app/api/insights/stats/route"
 
 export const metadata = buildPageMetadata({
   title: "Talent Map",
@@ -17,7 +18,7 @@ export const revalidate = 3600 // Cache for 1 hour
 
 async function getMapData() {
   try {
-    const res = await GET()
+    const res = await getMapRoute()
     if (!res.ok) {
       return []
     }
@@ -28,8 +29,24 @@ async function getMapData() {
   }
 }
 
+async function getStatsData() {
+  try {
+    const res = await getStatsRoute()
+    if (!res.ok) {
+      return null
+    }
+    return await res.json()
+  } catch (error) {
+    console.error("Failed to fetch stats data:", error)
+    return null
+  }
+}
+
 export default async function InsightsMapPage() {
-  const mapData = await getMapData()
+  const [mapData, statsData] = await Promise.all([
+    getMapData(),
+    getStatsData()
+  ])
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-mono selection:bg-[#00E5CC] selection:text-[#0a0a0a]">
@@ -81,7 +98,7 @@ export default async function InsightsMapPage() {
               <h2 className="text-[#00E5CC] text-xs font-bold font-mono uppercase mb-4 flex items-center gap-2">
                 <span className="text-[#00E5CC]">🌐</span> GLOBAL ENGINEER DISTRIBUTION
               </h2>
-              <EngineerDistribution />
+              <EngineerDistribution data={statsData?.distribution} />
             </div>
           </div>
 
@@ -93,7 +110,7 @@ export default async function InsightsMapPage() {
               <h2 className="text-[#00E5CC] text-xs font-bold font-mono uppercase mb-4 flex items-center gap-2">
                 <span className="text-[#00E5CC]">⌂</span> COMMUNITY IMPACT SCORE DISTRIBUTION
               </h2>
-              <ImpactDistribution />
+              <ImpactDistribution data={statsData?.impactDistribution} />
             </div>
 
             {/* PR Stats Block (Placeholder as seen in image) */}
@@ -110,7 +127,7 @@ export default async function InsightsMapPage() {
                   <span className="text-[#00E5CC]">📈</span> AVERAGE IMPACT TREND (30d)
                 </h2>
                 <div className="flex-1 mt-auto">
-                  <ImpactTrend />
+                  <ImpactTrend data={statsData?.impactTrend} />
                 </div>
               </div>
 
@@ -120,7 +137,7 @@ export default async function InsightsMapPage() {
                   <span className="text-[#00E5CC]">💠</span> SKILLS-DISTRIBUTION RADAR
                 </h2>
                 <div className="flex-1 mt-auto flex items-center justify-center">
-                  <SkillsRadar />
+                  <SkillsRadar data={statsData?.skillsRadar} />
                 </div>
               </div>
             </div>
@@ -140,3 +157,4 @@ export default async function InsightsMapPage() {
     </div>
   )
 }
+
