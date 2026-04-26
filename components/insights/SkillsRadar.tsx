@@ -26,12 +26,14 @@ const defaultData = [
 ];
 
 export function SkillsRadar({ data }: SkillsRadarProps) {
-  const maxCount = Math.max(...(data?.map(d => d.count) || [150]));
-  const chartData = data?.map(item => ({
-    subject: item.skill,
-    A: item.count,
-    fullMark: maxCount
-  })) || defaultData;
+  const maxCount = data && data.length > 0 ? Math.max(...data.map(d => d.count)) : 150;
+  const chartData = data && data.length > 0 
+    ? data.map(item => ({
+        subject: item.skill,
+        A: item.count,
+        fullMark: maxCount
+      })) 
+    : defaultData;
 
   return (
     <div className="w-full h-[200px] font-mono text-xs">

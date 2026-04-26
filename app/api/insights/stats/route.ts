@@ -16,9 +16,10 @@ export async function GET() {
 
     const impactDistribution = await sql`
       SELECT 
-        width_bucket(total_score, 0, 30000, 10) as bucket,
+        width_bucket(total_score, 0, 500, 10) as bucket,
         count(*)::int as count
       FROM leaderboard
+      WHERE total_score > 0
       GROUP BY bucket
       ORDER BY bucket
     `;

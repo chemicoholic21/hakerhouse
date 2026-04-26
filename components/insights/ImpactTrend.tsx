@@ -28,10 +28,12 @@ const defaultData = [
 ];
 
 export function ImpactTrend({ data }: ImpactTrendProps) {
-  const chartData = data?.map((item, i) => ({
-    day: new Date(item.day).getDate().toString(),
-    impact: Math.round(item.avg_impact)
-  })) || defaultData;
+  const chartData = data && data.length > 0 
+    ? data.map((item, i) => ({
+        day: new Date(item.day).getDate().toString(),
+        impact: Math.round(item.avg_impact)
+      })) 
+    : defaultData;
 
   return (
     <div className="w-full h-[200px] font-mono text-xs">

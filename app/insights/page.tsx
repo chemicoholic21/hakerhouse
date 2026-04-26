@@ -52,7 +52,7 @@ export default async function InsightsMapPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-white font-mono selection:bg-[#00E5CC] selection:text-[#0a0a0a]">
       <Header />
       
-      <main className="max-w-[1400px] mx-auto py-8 px-4 flex flex-col gap-4">
+      <main className="max-w-[1200px] mx-auto py-8 px-4 flex flex-col gap-4">
         {/* Dashboard Header */}
         <div className="border border-dashed border-[#6b7280] p-6 text-center mb-2">
           <h1 className="text-3xl font-bold font-mono tracking-widest text-white uppercase">

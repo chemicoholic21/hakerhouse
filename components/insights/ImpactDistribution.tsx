@@ -34,10 +34,12 @@ const defaultData = [
 ];
 
 export function ImpactDistribution({ data }: ImpactDistributionProps) {
-  const chartData = data?.map(item => ({
-    name: `${(item.bucket - 1) * 3}k`,
-    count: item.count
-  })) || defaultData;
+  const chartData = data && data.length > 0 
+    ? data.map(item => ({
+        name: `${(item.bucket - 1) * 50}`,
+        count: item.count
+      })) 
+    : defaultData;
 
   return (
     <div className="w-full h-[250px] font-mono text-xs">

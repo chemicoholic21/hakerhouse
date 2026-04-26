@@ -20,12 +20,24 @@ export default function WorldMap({
   onPointLeave,
 }: MapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  
+  // Use DottedMap class as getMap is not available in this version
   const map = new DottedMap({ height: 100, grid: "diagonal" });
+
+  // Force the map to cover the full world by adding corner pins at absolute boundaries
+  // This ensures the equirectangular projection aligns correctly
+  map.addPinned(-90, -180, { color: "transparent", size: 0 });
+  map.addPinned(90, 180, { color: "transparent", size: 0 });
+
+  // Add our points to the dotted map so they are part of the background dots
+  points.forEach(point => {
+    map.addPinned(point.lat, point.lng, { color: lineColor, size: 0.5 });
+  });
 
   const { theme } = useTheme();
 
   const svgMap = map.getSVG({
-    radius: 0.22,
+    radius: 0.3,
     color: "#2a2a2a", // Dark gray dots for the map
     shape: "circle",
     backgroundColor: "transparent",
@@ -41,13 +53,14 @@ export default function WorldMap({
     <div className="w-full h-full dark:bg-black bg-[#0a0a0a] rounded-lg relative font-sans">
       <img
         src={`data:image/svg+xml;utf8,${encodeURIComponent(svgMap)}`}
-        className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_10%,white_90%,transparent)] pointer-events-none select-none object-cover"
+        className="h-full w-full pointer-events-none select-none object-fill"
         alt="world map"
         draggable={false}
       />
       <svg
         ref={svgRef}
         viewBox="0 0 800 400"
+        preserveAspectRatio="none"
         className="w-full h-full absolute inset-0 pointer-events-auto select-none"
       >
         {/* Single points mapping */}

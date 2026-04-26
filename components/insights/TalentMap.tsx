@@ -51,7 +51,7 @@ export function TalentMap({ data }: { data: any[] }) {
 
       {/* Desktop Map View */}
       <div 
-        className="hidden md:block relative w-full h-[600px] border border-dashed border-[#00E5CC] bg-[#0a0a0a] overflow-hidden" 
+        className="hidden md:block relative w-full aspect-[2/1] border border-dashed border-[#00E5CC] bg-[#0a0a0a] overflow-hidden" 
         onMouseMove={handleMouseMove}
       >
         <WorldMap 
