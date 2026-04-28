@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import { motion } from "motion/react";
 import DottedMap from "dotted-map";
 
 import { useTheme } from "next-themes";
@@ -26,12 +25,12 @@ export default function WorldMap({
 
   // Force the map to cover the full world by adding corner pins at absolute boundaries
   // This ensures the equirectangular projection aligns correctly
-  map.addPinned(-90, -180, { color: "transparent", size: 0 });
-  map.addPinned(90, 180, { color: "transparent", size: 0 });
+  map.addPin({ lat: -90, lng: -180, svgOptions: { color: "transparent", radius: 0 } });
+  map.addPin({ lat: 90, lng: 180, svgOptions: { color: "transparent", radius: 0 } });
 
   // Add our points to the dotted map so they are part of the background dots
   points.forEach(point => {
-    map.addPinned(point.lat, point.lng, { color: lineColor, size: 0.5 });
+    map.addPin({ lat: point.lat, lng: point.lng, svgOptions: { color: lineColor, radius: 0.5 } });
   });
 
   const { theme } = useTheme();
