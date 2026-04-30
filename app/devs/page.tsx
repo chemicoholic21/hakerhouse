@@ -1,7 +1,7 @@
 import { Header } from "@/components/header"
 import { sql } from "@/lib/db"
 import { DevsList, type DevRow } from "@/components/devs-list"
-import { languages, countries, skillsList } from "@/lib/data"
+import { languages, countries } from "@/lib/data"
 import { buildPageMetadata } from "@/lib/seo"
 import { withCache } from "@/lib/cache"
 
@@ -13,19 +13,71 @@ export const metadata = buildPageMetadata({
 
 const ITEMS_PER_PAGE = 50
 
+interface SkillOption {
+  value: string
+  label: string
+}
+
+/**
+ * Fetch skills list from the database
+ * Falls back to empty array if skills table doesn't exist yet
+ */
+async function getSkillsList(): Promise<SkillOption[]> {
+  try {
+    const skills = await sql`
+      SELECT slug, display_name
+      FROM skills
+      ORDER BY
+        CASE category
+          WHEN 'language' THEN 1
+          WHEN 'framework' THEN 2
+          WHEN 'platform' THEN 3
+          WHEN 'domain' THEN 4
+          WHEN 'tool' THEN 5
+          ELSE 6
+        END,
+        display_name
+    `
+    return [
+      { value: 'all', label: 'All' },
+      ...skills.map((s: any) => ({ value: s.slug, label: s.display_name }))
+    ]
+  } catch (error) {
+    // Table might not exist yet, fall back to static list
+    console.warn("Failed to fetch skills from database, using fallback:", error)
+    return [
+      { value: "all", label: "All" },
+      { value: "react", label: "React" },
+      { value: "typescript", label: "TypeScript" },
+      { value: "python", label: "Python" },
+      { value: "rust", label: "Rust" },
+      { value: "go", label: "Go" },
+      { value: "docker", label: "Docker" },
+      { value: "kubernetes", label: "Kubernetes" },
+      { value: "aws", label: "AWS" },
+    ]
+  }
+}
+
 async function getDevs(
-  page: number, 
+  page: number,
   filters: { skill?: string; language?: string; country?: string; openTo?: string; username?: string; location?: string; topic?: string }
 ) {
   const offset = (page - 1) * ITEMS_PER_PAGE
-  
+
+  // Check if we're filtering by skill using the new scoring system
+  const useSkillScoring = filters.skill && filters.skill !== 'all'
+
   // Base conditions
   const conditions: string[] = []
   const params: any[] = []
 
-  if (filters.skill && filters.skill !== 'all') {
-    conditions.push(`l.unique_skills_json::text ILIKE $${params.length + 1}`)
-    params.push(`%${filters.skill}%`)
+  // When filtering by skill, we JOIN on user_skill_scores instead of ILIKE
+  if (useSkillScoring) {
+    // The skill filter is handled via JOIN, not WHERE
+    // We add a condition to ensure the JOIN found a match
+    conditions.push(`uss.skill_slug = $${params.length + 1}`)
+    params.push(filters.skill)
   }
 
   if (filters.language && filters.language !== 'all') {
@@ -53,8 +105,18 @@ async function getDevs(
     params.push(`%${filters.username}%`)
   }
 
-  const whereClause = conditions.length > 0 
-    ? 'WHERE ' + conditions.join(' AND ') 
+  const whereClause = conditions.length > 0
+    ? 'WHERE ' + conditions.join(' AND ')
+    : ''
+
+  // When filtering by skill, order by skill score; otherwise order by total_score
+  const orderBy = useSkillScoring
+    ? 'ORDER BY uss.score DESC, l.total_score DESC'
+    : 'ORDER BY l.total_score DESC'
+
+  // Build the JOIN clause based on whether we're filtering by skill
+  const skillJoin = useSkillScoring
+    ? 'INNER JOIN user_skill_scores uss ON l.username = uss.username'
     : ''
 
   const [countResult, dbData] = await Promise.all([
@@ -63,23 +125,26 @@ async function getDevs(
       SELECT COUNT(*) as count
       FROM leaderboard l
       LEFT JOIN analyses a ON l.username = a.username
+      ${skillJoin}
       ${whereClause}
       `,
       params
     ),
     sql.query(
       `
-      SELECT 
-        l.name, 
-        l.username, 
-        l.location as country, 
+      SELECT
+        l.name,
+        l.username,
+        l.location as country,
+        ${useSkillScoring ? 'uss.score as skill_score,' : ''}
         l.total_score as score,
         l.unique_skills_json,
         a.languages_json
       FROM leaderboard l
       LEFT JOIN analyses a ON l.username = a.username
+      ${skillJoin}
       ${whereClause}
-      ORDER BY l.total_score DESC
+      ${orderBy}
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
       `,
       params
@@ -116,7 +181,8 @@ async function getDevs(
       name: row.name || row.username,
       username: row.username,
       country: row.country || "Unknown",
-      score: row.score || 0,
+      // When filtering by skill, show the skill-specific score
+      score: row.skill_score ?? row.score ?? 0,
       skills: skills,
       language: language,
     }
@@ -130,8 +196,14 @@ async function getDevs(
 }
 
 async function getCachedDevs(page: number, filters: any) {
-  const cacheKey = `devs:v1:p${page}:${JSON.stringify(filters)}`
+  // Use v2 cache key to invalidate old cache entries
+  const cacheKey = `devs:v2:p${page}:${JSON.stringify(filters)}`
   return withCache(cacheKey, () => getDevs(page, filters), 60)
+}
+
+async function getCachedSkillsList() {
+  const cacheKey = 'skills:list:v1'
+  return withCache(cacheKey, () => getSkillsList(), 300) // Cache for 5 minutes
 }
 
 export default async function DevsPage({
@@ -149,15 +221,19 @@ export default async function DevsPage({
   const location = typeof resolvedParams.location === 'string' ? resolvedParams.location : undefined
   const topic = typeof resolvedParams.topic === 'string' ? resolvedParams.topic : undefined
 
-  const { devs, totalItems, totalPages } = await getCachedDevs(page, { skill, language, country, openTo, username, location, topic })
+  // Fetch devs and skills list in parallel
+  const [{ devs, totalItems, totalPages }, skillsList] = await Promise.all([
+    getCachedDevs(page, { skill, language, country, openTo, username, location, topic }),
+    getCachedSkillsList()
+  ])
 
   return (
     <div className="min-h-screen">
       <Header />
-      
+
       <main className="layout-container py-8">
-        <DevsList 
-          initialDevs={devs} 
+        <DevsList
+          initialDevs={devs}
           skillsList={skillsList}
           languages={languages}
           countries={countries}
@@ -168,7 +244,7 @@ export default async function DevsPage({
           }}
         />
       </main>
-      
+
       <footer className="border-t-2 border-dashed border-foreground/70 py-6">
         <div className="layout-container text-center text-sm">
           <p>
