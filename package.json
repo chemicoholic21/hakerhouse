@@ -6,13 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-<<<<<<< HEAD
     "lint": "eslint .",
     "db:compute-skills": "tsx scripts/compute-skill-scores.ts"
-=======
-    "db:compute-skills": "tsx scripts/compute-skill-scores.ts",
-    "lint": "eslint ."
->>>>>>> feat/visualiser
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
