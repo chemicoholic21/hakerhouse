@@ -1,13 +1,18 @@
 /**
  * Skill Scoring Computation Script
  *
- * Usage: npm run db:compute-skills
+ * Usage:
+ *   npm run db:compute-skills              # Full recompute
+ *   npm run db:compute-skills -- --incremental  # Only compute for new users
  */
 import { neon } from "@neondatabase/serverless"
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set")
 }
 const sql = neon(process.env.DATABASE_URL)
+
+// Check for incremental mode
+const isIncremental = process.argv.includes('--incremental')
 interface Skill {
   slug: string
   display_name: string
@@ -151,18 +156,34 @@ function parseTopRepos(jsonData: string | object | null): TopRepo[] {
  * Main computation function
  */
 async function computeAllSkillScores(): Promise<void> {
-  console.log("Starting skill score computation...")
+  console.log(`Starting skill score computation (mode: ${isIncremental ? 'incremental' : 'full'})...`)
   // 1. Get all skills
   console.log("Fetching skills...")
   const skills = await sql`SELECT * FROM skills` as Skill[]
   console.log(`Found ${skills.length} skills`)
-  // 2. Get all users with their repo data
+
+  // 2. Get users with their repo data
   console.log("Fetching user analyses...")
-  const users = await sql`
-    SELECT a.username, a.top_repos_json, a.languages_json
-    FROM analyses a
-    INNER JOIN leaderboard l ON a.username = l.username
-  ` as UserAnalysis[]
+
+  let users: UserAnalysis[]
+  if (isIncremental) {
+    // Only get users who don't have skill scores yet
+    users = await sql`
+      SELECT a.username, a.top_repos_json, a.languages_json
+      FROM analyses a
+      INNER JOIN leaderboard l ON a.username = l.username
+      WHERE NOT EXISTS (
+        SELECT 1 FROM user_skill_scores uss WHERE uss.username = a.username
+      )
+    ` as UserAnalysis[]
+    console.log(`Found ${users.length} new users to process`)
+  } else {
+    users = await sql`
+      SELECT a.username, a.top_repos_json, a.languages_json
+      FROM analyses a
+      INNER JOIN leaderboard l ON a.username = l.username
+    ` as UserAnalysis[]
+  }
   console.log(`Found ${users.length} users`)
   // Debug: show sample of raw data
   const sampleUser = users.find(u => u.top_repos_json)
@@ -268,36 +289,58 @@ async function computeAllSkillScores(): Promise<void> {
     console.log("\nNo scores computed. Check if repo data has 'language' or 'topics' fields.")
     return
   }
-  // 4. Clear existing scores and insert new ones
+  // 4. Save scores using batch inserts for efficiency
   console.log("\nSaving scores to database...")
-  await sql`DELETE FROM user_skill_scores`
-  // Insert in batches
-  const batchSize = 100
+
+  // Use larger batches with multi-row INSERT for efficiency
+  const batchSize = 500
+  let savedCount = 0
+  let errorCount = 0
+
   for (let i = 0; i < allScores.length; i += batchSize) {
     const batch = allScores.slice(i, i + batchSize)
-    for (const data of batch) {
-      await sql`
-        INSERT INTO user_skill_scores (username, skill_slug, score, repo_count, top_repos_json, computed_at)
-        VALUES (
-          ${data.username},
-          ${data.skillSlug},
-          ${data.score},
-          ${data.repoCount},
-          ${JSON.stringify(data.topRepos)}::jsonb,
-          NOW()
-        )
-        ON CONFLICT (username, skill_slug) DO UPDATE SET
-          score = EXCLUDED.score,
-          repo_count = EXCLUDED.repo_count,
-          top_repos_json = EXCLUDED.top_repos_json,
-          computed_at = NOW()
-      `
+
+    // Build multi-row VALUES clause
+    const values = batch.map(data =>
+      `('${data.username.replace(/'/g, "''")}', '${data.skillSlug}', ${data.score}, ${data.repoCount}, '${JSON.stringify(data.topRepos).replace(/'/g, "''")}'::jsonb, NOW())`
+    ).join(',\n')
+
+    const query = `
+      INSERT INTO user_skill_scores (username, skill_slug, score, repo_count, top_repos_json, computed_at)
+      VALUES ${values}
+      ON CONFLICT (username, skill_slug) DO UPDATE SET
+        score = EXCLUDED.score,
+        repo_count = EXCLUDED.repo_count,
+        top_repos_json = EXCLUDED.top_repos_json,
+        computed_at = NOW()
+    `
+
+    // Retry logic for transient errors
+    let retries = 3
+    while (retries > 0) {
+      try {
+        await sql(query)
+        savedCount += batch.length
+        break
+      } catch (err) {
+        retries--
+        if (retries === 0) {
+          console.error(`Failed to save batch at ${i}, skipping...`)
+          errorCount += batch.length
+        } else {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      }
     }
-    if ((i + batchSize) % 1000 === 0 || i + batchSize >= allScores.length) {
-      console.log(`Saved ${Math.min(i + batchSize, allScores.length)}/${allScores.length} scores...`)
+
+    if ((i + batchSize) % 5000 === 0 || i + batchSize >= allScores.length) {
+      console.log(`Progress: ${Math.min(i + batchSize, allScores.length)}/${allScores.length} (saved: ${savedCount}, errors: ${errorCount})`)
     }
   }
-  console.log("Done!")
+
+  console.log(`\nDone! Saved ${savedCount} scores, ${errorCount} errors`)
+
   // Print stats
   const stats = await sql`
     SELECT
