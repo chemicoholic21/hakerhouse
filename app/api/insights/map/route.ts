@@ -1,8 +1,25 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { cityCoordinates } from '@/lib/geo/cityCoordinates';
+import {
+  getApiRateLimiter,
+  getClientIdentifier,
+  checkRateLimit,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit"
 
-export async function GET() {
+export async function GET(request?: Request) {
+  // Rate limiting - only apply for external requests (when request object is provided)
+  if (request) {
+    const rateLimiter = getApiRateLimiter()
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = await checkRateLimit(clientId, rateLimiter)
+
+    if (!rateLimitResult.success) {
+      return rateLimitExceededResponse(rateLimitResult)
+    }
+  }
+
   try {
     const data = await sql.query(`
       WITH Ranked AS (
@@ -11,7 +28,7 @@ export async function GET() {
         FROM leaderboard
         WHERE location IS NOT NULL AND location != ''
       )
-      SELECT 
+      SELECT
         l.location as region,
         COUNT(l.username)::int as dev_count,
         ROUND(AVG(l.total_score))::int as avg_impact,
