@@ -4,6 +4,14 @@ import { DevsList, type DevRow } from "@/components/devs-list"
 import { languages, countries } from "@/lib/data"
 import { buildPageMetadata } from "@/lib/seo"
 import { withCache } from "@/lib/cache"
+import {
+  buildWhereClause,
+  validateCondition,
+  getSkillJoinClause,
+  getOrderByClause,
+  getSkillSelectFragment,
+  buildPaginationClause,
+} from "@/lib/query-builder"
 
 export const metadata = buildPageMetadata({
   title: "Developers",
@@ -53,58 +61,67 @@ async function getDevs(
   const offset = (page - 1) * ITEMS_PER_PAGE
 
   // Check if we're filtering by skill using the new scoring system
-  const useSkillScoring = filters.skill && filters.skill !== 'all'
+  const useSkillScoring = !!(filters.skill && filters.skill !== 'all')
 
-  // Base conditions
+  // Base conditions - all conditions use parameterized values
   const conditions: string[] = []
   const params: any[] = []
 
-  // When filtering by skill, we JOIN on user_skill_scores instead of ILIKE
+  // When filtering by skill, we JOIN on user_skill_scores
   if (useSkillScoring) {
-    // The skill filter is handled via JOIN, not WHERE
-    // We add a condition to ensure the JOIN found a match
-    conditions.push(`uss.skill_slug = $${params.length + 1}`)
-    params.push(filters.skill)
+    const condition = `uss.skill_slug = $${params.length + 1}`
+    if (validateCondition(condition)) {
+      conditions.push(condition)
+      params.push(filters.skill)
+    }
   }
 
   if (filters.language && filters.language !== 'all') {
-    conditions.push(`a.languages_json::text ILIKE $${params.length + 1}`)
-    params.push(`%${filters.language}%`)
+    const condition = `a.languages_json::text ILIKE $${params.length + 1}`
+    if (validateCondition(condition)) {
+      conditions.push(condition)
+      params.push(`%${filters.language}%`)
+    }
   }
 
   if (filters.country && filters.country !== 'all') {
-    conditions.push(`l.location ILIKE $${params.length + 1}`)
-    params.push(`%${filters.country}%`)
+    const condition = `l.location ILIKE $${params.length + 1}`
+    if (validateCondition(condition)) {
+      conditions.push(condition)
+      params.push(`%${filters.country}%`)
+    }
   }
 
   if (filters.location) {
-    conditions.push(`l.location ILIKE $${params.length + 1}`)
-    params.push(`%${filters.location}%`)
+    const condition = `l.location ILIKE $${params.length + 1}`
+    if (validateCondition(condition)) {
+      conditions.push(condition)
+      params.push(`%${filters.location}%`)
+    }
   }
 
   if (filters.topic) {
-    conditions.push(`(l.unique_skills_json::text ILIKE $${params.length + 1} OR a.languages_json::text ILIKE $${params.length + 1})`)
-    params.push(`%${filters.topic}%`)
+    const condition = `(l.unique_skills_json::text ILIKE $${params.length + 1} OR a.languages_json::text ILIKE $${params.length + 1})`
+    if (validateCondition(condition)) {
+      conditions.push(condition)
+      params.push(`%${filters.topic}%`)
+    }
   }
 
   if (filters.username) {
-    conditions.push(`(l.username ILIKE $${params.length + 1} OR l.name ILIKE $${params.length + 1})`)
-    params.push(`%${filters.username}%`)
+    const condition = `(l.username ILIKE $${params.length + 1} OR l.name ILIKE $${params.length + 1})`
+    if (validateCondition(condition)) {
+      conditions.push(condition)
+      params.push(`%${filters.username}%`)
+    }
   }
 
-  const whereClause = conditions.length > 0
-    ? 'WHERE ' + conditions.join(' AND ')
-    : ''
-
-  // When filtering by skill, order by skill score; otherwise order by total_score
-  const orderBy = useSkillScoring
-    ? 'ORDER BY uss.score DESC, l.total_score DESC'
-    : 'ORDER BY l.total_score DESC'
-
-  // Build the JOIN clause based on whether we're filtering by skill
-  const skillJoin = useSkillScoring
-    ? 'INNER JOIN user_skill_scores uss ON l.username = uss.username'
-    : ''
+  // Use type-safe query fragments
+  const whereClause = buildWhereClause(conditions)
+  const skillJoin = getSkillJoinClause(useSkillScoring)
+  const orderBy = getOrderByClause(useSkillScoring)
+  const skillSelect = getSkillSelectFragment(useSkillScoring)
+  const pagination = buildPaginationClause(ITEMS_PER_PAGE, offset)
 
   const [countResult, dbData] = await Promise.all([
     sql.query(
@@ -123,7 +140,7 @@ async function getDevs(
         l.name,
         l.username,
         l.location as country,
-        ${useSkillScoring ? 'uss.score as skill_score,' : ''}
+        ${skillSelect}
         l.total_score as score,
         l.unique_skills_json,
         a.languages_json
@@ -132,7 +149,7 @@ async function getDevs(
       ${skillJoin}
       ${whereClause}
       ${orderBy}
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+      ${pagination}
       `,
       params
     )
