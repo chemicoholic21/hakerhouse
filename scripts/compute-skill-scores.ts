@@ -125,12 +125,20 @@ function calculateSkillScore(matchingRepos: TopRepo[]): number {
   return Math.round(totalScore * 100) / 100
 }
 /**
- * Parse top_repos_json safely
+ * Parse top_repos_json safely - handles both string JSON and already-parsed objects
  */
-function parseTopRepos(jsonStr: string | null): TopRepo[] {
-  if (!jsonStr) return []
+function parseTopRepos(jsonData: string | object | null): TopRepo[] {
+  if (!jsonData) return []
   try {
-    const parsed = JSON.parse(jsonStr)
+    // If it's already an object/array, use it directly
+    if (typeof jsonData === 'object') {
+      if (Array.isArray(jsonData)) {
+        return jsonData
+      }
+      return []
+    }
+    // If it's a string, parse it
+    const parsed = JSON.parse(jsonData)
     if (Array.isArray(parsed)) {
       return parsed
     }
@@ -156,21 +164,26 @@ async function computeAllSkillScores(): Promise<void> {
     INNER JOIN leaderboard l ON a.username = l.username
   ` as UserAnalysis[]
   console.log(`Found ${users.length} users`)
-  // Debug: show sample of first user with repos
-  const sampleUser = users.find(u => u.top_repos_json && u.top_repos_json !== '[]')
+  // Debug: show sample of raw data
+  const sampleUser = users.find(u => u.top_repos_json)
   if (sampleUser) {
-    console.log("\nSample user repo data structure:")
+    console.log("\n=== DEBUG: Raw data analysis ===")
+    console.log("Type of top_repos_json:", typeof sampleUser.top_repos_json)
+    const rawStr = String(sampleUser.top_repos_json).substring(0, 500)
+    console.log("First 500 chars of raw data:", rawStr)
+
     const repos = parseTopRepos(sampleUser.top_repos_json)
+    console.log("Parsed repos count:", repos.length)
     if (repos.length > 0) {
       console.log("Fields in first repo:", Object.keys(repos[0]))
       console.log("Sample repo:", JSON.stringify(repos[0], null, 2))
       console.log("\nAll repos for sample user:")
       repos.forEach((repo, i) => {
-        console.log(`  [${i}] name: ${repo.name}, language: ${repo.language}, stars: ${getStarCount(repo)}`)
+        console.log(`  [${i}] name: ${repo.name}, language: "${repo.language}", stars: ${getStarCount(repo)}`)
       })
     }
   } else {
-    console.log("\nWARNING: No users found with repo data!")
+    console.log("\nWARNING: No users found with top_repos_json!")
   }
 
   // Debug: Check languages present in the data
@@ -180,6 +193,7 @@ async function computeAllSkillScores(): Promise<void> {
     const repos = parseTopRepos(u.top_repos_json)
     return repos.length > 0
   })
+  console.log(`\nUsers with parseable repo data: ${usersWithRepoData.length}`)
 
   for (const user of usersWithRepoData.slice(0, 100)) {
     const repos = parseTopRepos(user.top_repos_json)
@@ -201,6 +215,7 @@ async function computeAllSkillScores(): Promise<void> {
   // Test matching with a specific skill
   console.log("\nTesting skill matching on sample repos:")
   const testSkills = skills.filter(s => ['javascript', 'python', 'typescript'].includes(s.slug))
+  console.log(`Found ${testSkills.length} test skills to check`)
   for (const skill of testSkills) {
     let matchCount = 0
     for (const user of usersWithRepoData.slice(0, 100)) {
@@ -213,6 +228,7 @@ async function computeAllSkillScores(): Promise<void> {
     }
     console.log(`  ${skill.slug}: ${matchCount} matches (match_languages: ${skill.match_languages.join(', ')})`)
   }
+  console.log("=== END DEBUG ===")
   // 3. Compute scores for each user-skill pair
   console.log("\nComputing scores...")
   const allScores: UserSkillData[] = []
