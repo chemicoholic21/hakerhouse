@@ -290,67 +290,48 @@ async function computeAllSkillScores(): Promise<void> {
     console.log("\nNo scores computed. Check if repo data has 'language' or 'topics' fields.")
     return
   }
-  // 4. Save scores using batch inserts for efficiency
+  // 4. Save scores - sequential inserts with proper error handling
   console.log("\nSaving scores to database...")
 
-  // Use transaction with batch inserts for efficiency
-  // Neon serverless requires using sql.transaction for raw queries
-  const batchSize = 100  // Smaller batches for reliability
   let savedCount = 0
   let errorCount = 0
+  let firstErrorLogged = false
 
-  for (let i = 0; i < allScores.length; i += batchSize) {
-    const batch = allScores.slice(i, i + batchSize)
+  for (let i = 0; i < allScores.length; i++) {
+    const data = allScores[i]
 
-    // Retry logic for transient errors
-    let retries = 3
-    let lastError: Error | null = null
-
-    while (retries > 0) {
-      try {
-        // Use Promise.all with individual upserts in parallel within batch
-        await Promise.all(batch.map(data =>
-          sql`
-            INSERT INTO user_skill_scores (username, skill_slug, score, repo_count, top_repos_json, computed_at)
-            VALUES (
-              ${data.username},
-              ${data.skillSlug},
-              ${data.score},
-              ${data.repoCount},
-              ${JSON.stringify(data.topRepos)}::jsonb,
-              NOW()
-            )
-            ON CONFLICT (username, skill_slug) DO UPDATE SET
-              score = EXCLUDED.score,
-              repo_count = EXCLUDED.repo_count,
-              top_repos_json = EXCLUDED.top_repos_json,
-              computed_at = NOW()
-          `
-        ))
-        savedCount += batch.length
-        lastError = null
-        break
-      } catch (err) {
-        lastError = err as Error
-        retries--
-        if (retries > 0) {
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        }
+    try {
+      await sql`
+        INSERT INTO user_skill_scores (username, skill_slug, score, repo_count, top_repos_json, computed_at)
+        VALUES (
+          ${data.username},
+          ${data.skillSlug},
+          ${data.score},
+          ${data.repoCount},
+          ${JSON.stringify(data.topRepos)},
+          NOW()
+        )
+        ON CONFLICT (username, skill_slug) DO UPDATE SET
+          score = EXCLUDED.score,
+          repo_count = EXCLUDED.repo_count,
+          top_repos_json = EXCLUDED.top_repos_json,
+          computed_at = NOW()
+      `
+      savedCount++
+    } catch (err) {
+      if (!firstErrorLogged) {
+        const error = err as Error
+        console.error(`\nFirst error details:`)
+        console.error(`  Message: ${error.message}`)
+        console.error(`  Data: username=${data.username}, skill=${data.skillSlug}, score=${data.score}`)
+        console.error(`  Top repos sample: ${JSON.stringify(data.topRepos).slice(0, 200)}`)
+        firstErrorLogged = true
       }
+      errorCount++
     }
 
-    if (lastError) {
-      // Log the first error for debugging
-      if (errorCount === 0) {
-        console.error(`First error: ${lastError.message}`)
-      }
-      console.error(`Failed to save batch at ${i}, skipping...`)
-      errorCount += batch.length
-    }
-
-    if ((i + batchSize) % 5000 === 0 || i + batchSize >= allScores.length) {
-      console.log(`Progress: ${Math.min(i + batchSize, allScores.length)}/${allScores.length} (saved: ${savedCount}, errors: ${errorCount})`)
+    if ((i + 1) % 5000 === 0 || i + 1 === allScores.length) {
+      console.log(`Progress: ${i + 1}/${allScores.length} (saved: ${savedCount}, errors: ${errorCount})`)
     }
   }
 
