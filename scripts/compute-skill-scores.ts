@@ -16,18 +16,31 @@ interface Skill {
   match_keywords: string[]
 }
 interface TopRepo {
+  // Various field names used across different data sources
   full_name?: string
   fullName?: string
   ownerLogin?: string
-  owner?: string  // Alternative field name in actual data
+  owner?: string
   name?: string
-  userPRs?: number
-  prs?: number  // Alternative field name in actual data
+  description?: string
+  // Star counts - different field names
   stars?: number
+  stargazersCount?: number  // GitHub API format
+  stargazers_count?: number
+  // PR counts
+  userPRs?: number
+  prs?: number
+  // Fork counts
+  forksCount?: number
+  forks_count?: number
+  // Language
   language?: string | null
+  // Topics/categories
   topics?: string[]
-  categories?: string[]  // Alternative field name in actual data (maps to topics)
+  categories?: string[]
+  // Other
   score?: number
+  updatedAt?: string
 }
 interface UserAnalysis {
   username: string
@@ -42,19 +55,27 @@ interface UserSkillData {
   topRepos: TopRepo[]
 }
 /**
+ * Helper to get star count from various field names
+ */
+function getStarCount(repo: TopRepo): number {
+  return repo.stars || repo.stargazersCount || repo.stargazers_count || 0
+}
+
+/**
  * Check if a repo matches a skill based on language, topics/categories, and keywords
  */
 function repoMatchesSkill(repo: TopRepo, skill: Skill): boolean {
-  // Check language match
-  const repoLanguage = repo.language?.toLowerCase() || ''
-  for (const lang of skill.match_languages) {
-    if (repoLanguage === lang.toLowerCase()) {
-      return true
+  // Check language match (case-insensitive)
+  const repoLanguage = (repo.language || '').toLowerCase().trim()
+  if (repoLanguage) {
+    for (const lang of skill.match_languages) {
+      if (repoLanguage === lang.toLowerCase()) {
+        return true
+      }
     }
   }
 
   // Check topic/category match (support both 'topics' and 'categories' fields)
-  // The actual data uses 'categories' but we also support 'topics' for flexibility
   const repoTopics = (repo.topics || repo.categories || []).map(t => t.toLowerCase())
   for (const topic of skill.match_topics) {
     if (repoTopics.includes(topic.toLowerCase())) {
@@ -62,11 +83,22 @@ function repoMatchesSkill(repo: TopRepo, skill: Skill): boolean {
     }
   }
 
-  // Check keyword match in repo name
-  const repoName = (repo.full_name || repo.fullName || `${repo.owner || repo.ownerLogin || ''}/${repo.name || ''}`).toLowerCase()
+  // Check keyword match in repo name and description
+  const repoName = (repo.full_name || repo.fullName || repo.name || '').toLowerCase()
+  const repoDesc = (repo.description || '').toLowerCase()
+  const searchText = `${repoName} ${repoDesc}`
+
   for (const keyword of skill.match_keywords) {
-    if (repoName.includes(keyword.toLowerCase())) {
-      return true
+    const kw = keyword.toLowerCase()
+    // Skip very short keywords (like ".c", ".h") for description matching to avoid false positives
+    if (kw.length <= 2) {
+      if (repoName.includes(kw)) {
+        return true
+      }
+    } else {
+      if (searchText.includes(kw)) {
+        return true
+      }
     }
   }
   return false
@@ -78,14 +110,17 @@ function calculateSkillScore(matchingRepos: TopRepo[]): number {
   if (matchingRepos.length === 0) return 0
   let totalScore = 0
   for (const repo of matchingRepos) {
-    const stars = repo.stars || 0
+    // Use helper to get star count from various field names
+    const stars = getStarCount(repo)
     // Support both 'userPRs' and 'prs' field names
     const prs = repo.userPRs || repo.prs || 1
     // Log scale for stars to reduce impact of outliers
     const starScore = stars > 0 ? Math.log10(stars + 1) * 10 : 0
     // PR contribution multiplier - more PRs = more expertise demonstrated
     const prMultiplier = Math.min(Math.log2(prs + 1) + 1, 3)
-    totalScore += starScore * prMultiplier
+    // Base score for having a repo in this skill (even with 0 stars)
+    const baseScore = 1
+    totalScore += baseScore + (starScore * prMultiplier)
   }
   return Math.round(totalScore * 100) / 100
 }
@@ -131,28 +166,52 @@ async function computeAllSkillScores(): Promise<void> {
       console.log("Sample repo:", JSON.stringify(repos[0], null, 2))
       console.log("\nAll repos for sample user:")
       repos.forEach((repo, i) => {
-        console.log(`  [${i}] name: ${repo.name}, categories: ${JSON.stringify(repo.categories || repo.topics)}, language: ${repo.language}`)
+        console.log(`  [${i}] name: ${repo.name}, language: ${repo.language}, stars: ${getStarCount(repo)}`)
       })
     }
   } else {
     console.log("\nWARNING: No users found with repo data!")
   }
 
-  // Debug: Check a few more users to understand the data
+  // Debug: Check languages present in the data
+  const languageCounts: Record<string, number> = {}
+  let totalReposChecked = 0
   const usersWithRepoData = users.filter(u => {
     const repos = parseTopRepos(u.top_repos_json)
     return repos.length > 0
-  }).slice(0, 5)
+  })
 
-  console.log(`\nChecking ${usersWithRepoData.length} users with repo data:`)
-  for (const user of usersWithRepoData) {
+  for (const user of usersWithRepoData.slice(0, 100)) {
     const repos = parseTopRepos(user.top_repos_json)
-    const hasCategories = repos.some(r => (r.categories && r.categories.length > 0) || (r.topics && r.topics.length > 0))
-    const hasLanguage = repos.some(r => r.language)
-    console.log(`  ${user.username}: ${repos.length} repos, hasCategories: ${hasCategories}, hasLanguage: ${hasLanguage}`)
-    if (repos.length > 0) {
-      console.log(`    First repo keys: ${Object.keys(repos[0]).join(', ')}`)
+    for (const repo of repos) {
+      totalReposChecked++
+      const lang = repo.language || 'null'
+      languageCounts[lang] = (languageCounts[lang] || 0) + 1
     }
+  }
+
+  console.log(`\nLanguage distribution (first 100 users, ${totalReposChecked} repos):`)
+  const sortedLangs = Object.entries(languageCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+  for (const [lang, count] of sortedLangs) {
+    console.log(`  ${lang}: ${count}`)
+  }
+
+  // Test matching with a specific skill
+  console.log("\nTesting skill matching on sample repos:")
+  const testSkills = skills.filter(s => ['javascript', 'python', 'typescript'].includes(s.slug))
+  for (const skill of testSkills) {
+    let matchCount = 0
+    for (const user of usersWithRepoData.slice(0, 100)) {
+      const repos = parseTopRepos(user.top_repos_json)
+      for (const repo of repos) {
+        if (repoMatchesSkill(repo, skill)) {
+          matchCount++
+        }
+      }
+    }
+    console.log(`  ${skill.slug}: ${matchCount} matches (match_languages: ${skill.match_languages.join(', ')})`)
   }
   // 3. Compute scores for each user-skill pair
   console.log("\nComputing scores...")
@@ -170,7 +229,7 @@ async function computeAllSkillScores(): Promise<void> {
         const score = calculateSkillScore(matchingRepos)
         if (score > 0) {
           const topRepos = matchingRepos
-            .sort((a, b) => (b.stars || 0) - (a.stars || 0))
+            .sort((a, b) => getStarCount(b) - getStarCount(a))
             .slice(0, 5)
           allScores.push({
             username: user.username,
