@@ -20,43 +20,30 @@ interface SkillOption {
 
 /**
  * Fetch skills list from the database
- * Falls back to empty array if skills table doesn't exist yet
+ * Only shows skills that have at least one user with a computed score
  */
 async function getSkillsList(): Promise<SkillOption[]> {
-  try {
-    const skills = await sql`
-      SELECT slug, display_name
-      FROM skills
-      ORDER BY
-        CASE category
-          WHEN 'language' THEN 1
-          WHEN 'framework' THEN 2
-          WHEN 'platform' THEN 3
-          WHEN 'domain' THEN 4
-          WHEN 'tool' THEN 5
-          ELSE 6
-        END,
-        display_name
-    `
-    return [
-      { value: 'all', label: 'All' },
-      ...skills.map((s: any) => ({ value: s.slug, label: s.display_name }))
-    ]
-  } catch (error) {
-    // Table might not exist yet, fall back to static list
-    console.warn("Failed to fetch skills from database, using fallback:", error)
-    return [
-      { value: "all", label: "All" },
-      { value: "react", label: "React" },
-      { value: "typescript", label: "TypeScript" },
-      { value: "python", label: "Python" },
-      { value: "rust", label: "Rust" },
-      { value: "go", label: "Go" },
-      { value: "docker", label: "Docker" },
-      { value: "kubernetes", label: "Kubernetes" },
-      { value: "aws", label: "AWS" },
-    ]
-  }
+  const skills = await sql`
+    SELECT s.slug, s.display_name, COUNT(uss.username) as user_count
+    FROM skills s
+    INNER JOIN user_skill_scores uss ON s.slug = uss.skill_slug
+    GROUP BY s.slug, s.display_name, s.category
+    HAVING COUNT(uss.username) > 0
+    ORDER BY
+      CASE s.category
+        WHEN 'language' THEN 1
+        WHEN 'framework' THEN 2
+        WHEN 'platform' THEN 3
+        WHEN 'domain' THEN 4
+        WHEN 'tool' THEN 5
+        ELSE 6
+      END,
+      COUNT(uss.username) DESC
+  `
+  return [
+    { value: 'all', label: 'All' },
+    ...skills.map((s: any) => ({ value: s.slug, label: `${s.display_name} (${s.user_count})` }))
+  ]
 }
 
 async function getDevs(
