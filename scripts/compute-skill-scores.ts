@@ -129,9 +129,30 @@ async function computeAllSkillScores(): Promise<void> {
     if (repos.length > 0) {
       console.log("Fields in first repo:", Object.keys(repos[0]))
       console.log("Sample repo:", JSON.stringify(repos[0], null, 2))
+      console.log("\nAll repos for sample user:")
+      repos.forEach((repo, i) => {
+        console.log(`  [${i}] name: ${repo.name}, categories: ${JSON.stringify(repo.categories || repo.topics)}, language: ${repo.language}`)
+      })
     }
   } else {
     console.log("\nWARNING: No users found with repo data!")
+  }
+
+  // Debug: Check a few more users to understand the data
+  const usersWithRepoData = users.filter(u => {
+    const repos = parseTopRepos(u.top_repos_json)
+    return repos.length > 0
+  }).slice(0, 5)
+
+  console.log(`\nChecking ${usersWithRepoData.length} users with repo data:`)
+  for (const user of usersWithRepoData) {
+    const repos = parseTopRepos(user.top_repos_json)
+    const hasCategories = repos.some(r => (r.categories && r.categories.length > 0) || (r.topics && r.topics.length > 0))
+    const hasLanguage = repos.some(r => r.language)
+    console.log(`  ${user.username}: ${repos.length} repos, hasCategories: ${hasCategories}, hasLanguage: ${hasLanguage}`)
+    if (repos.length > 0) {
+      console.log(`    First repo keys: ${Object.keys(repos[0]).join(', ')}`)
+    }
   }
   // 3. Compute scores for each user-skill pair
   console.log("\nComputing scores...")
