@@ -298,4 +298,22 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     matchTopics: ['mongodb', 'mongoose', 'nosql'],
     matchKeywords: ['mongodb', 'mongoose'],
   },
+
+  // Roles/Specializations (matching categories in top_repos_json)
+  {
+    slug: 'frontend',
+    displayName: 'Frontend',
+    category: 'domain',
+    matchLanguages: [],
+    matchTopics: ['frontend', 'front-end', 'ui', 'ux', 'web'],
+    matchKeywords: ['frontend', 'front-end'],
+  },
+  {
+    slug: 'backend',
+    displayName: 'Backend',
+    category: 'domain',
+    matchLanguages: [],
+    matchTopics: ['backend', 'back-end', 'api', 'server'],
+    matchKeywords: ['backend', 'back-end', 'server'],
+  },
 ]

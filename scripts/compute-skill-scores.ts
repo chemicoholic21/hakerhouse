@@ -19,11 +19,14 @@ interface TopRepo {
   full_name?: string
   fullName?: string
   ownerLogin?: string
+  owner?: string  // Alternative field name in actual data
   name?: string
   userPRs?: number
+  prs?: number  // Alternative field name in actual data
   stars?: number
   language?: string | null
   topics?: string[]
+  categories?: string[]  // Alternative field name in actual data (maps to topics)
   score?: number
 }
 interface UserAnalysis {
@@ -39,7 +42,7 @@ interface UserSkillData {
   topRepos: TopRepo[]
 }
 /**
- * Check if a repo matches a skill based on language, topics, and keywords
+ * Check if a repo matches a skill based on language, topics/categories, and keywords
  */
 function repoMatchesSkill(repo: TopRepo, skill: Skill): boolean {
   // Check language match
@@ -49,15 +52,18 @@ function repoMatchesSkill(repo: TopRepo, skill: Skill): boolean {
       return true
     }
   }
-  // Check topic match
-  const repoTopics = (repo.topics || []).map(t => t.toLowerCase())
+
+  // Check topic/category match (support both 'topics' and 'categories' fields)
+  // The actual data uses 'categories' but we also support 'topics' for flexibility
+  const repoTopics = (repo.topics || repo.categories || []).map(t => t.toLowerCase())
   for (const topic of skill.match_topics) {
     if (repoTopics.includes(topic.toLowerCase())) {
       return true
     }
   }
+
   // Check keyword match in repo name
-  const repoName = (repo.full_name || repo.fullName || repo.name || '').toLowerCase()
+  const repoName = (repo.full_name || repo.fullName || `${repo.owner || repo.ownerLogin || ''}/${repo.name || ''}`).toLowerCase()
   for (const keyword of skill.match_keywords) {
     if (repoName.includes(keyword.toLowerCase())) {
       return true
@@ -73,7 +79,8 @@ function calculateSkillScore(matchingRepos: TopRepo[]): number {
   let totalScore = 0
   for (const repo of matchingRepos) {
     const stars = repo.stars || 0
-    const prs = repo.userPRs || 1
+    // Support both 'userPRs' and 'prs' field names
+    const prs = repo.userPRs || repo.prs || 1
     // Log scale for stars to reduce impact of outliers
     const starScore = stars > 0 ? Math.log10(stars + 1) * 10 : 0
     // PR contribution multiplier - more PRs = more expertise demonstrated
