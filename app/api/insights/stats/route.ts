@@ -1,10 +1,27 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import {
+  getApiRateLimiter,
+  getClientIdentifier,
+  checkRateLimit,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit"
 
-export async function GET() {
+export async function GET(request?: Request) {
+  // Rate limiting - only apply for external requests (when request object is provided)
+  if (request) {
+    const rateLimiter = getApiRateLimiter()
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = await checkRateLimit(clientId, rateLimiter)
+
+    if (!rateLimitResult.success) {
+      return rateLimitExceededResponse(rateLimitResult)
+    }
+  }
+
   try {
     const distributionData = await sql`
-      SELECT 
+      SELECT
         AVG(frontend_score) as frontend,
         AVG(backend_score) as backend,
         AVG(ai_score) as ai,
@@ -15,7 +32,7 @@ export async function GET() {
     const distribution = distributionData[0];
 
     const impactDistribution = await sql`
-      SELECT 
+      SELECT
         width_bucket(total_score, 0, 500, 10) as bucket,
         count(*)::int as count
       FROM leaderboard
@@ -27,9 +44,9 @@ export async function GET() {
     const skillsRadar = await sql`
       SELECT skill, count(*)::int as count
       FROM leaderboard, jsonb_array_elements_text(
-        CASE 
-          WHEN jsonb_typeof(unique_skills_json) = 'array' THEN unique_skills_json 
-          ELSE '[]'::jsonb 
+        CASE
+          WHEN jsonb_typeof(unique_skills_json) = 'array' THEN unique_skills_json
+          ELSE '[]'::jsonb
         END
       ) as skill
       WHERE unique_skills_json IS NOT NULL
@@ -39,11 +56,11 @@ export async function GET() {
     `;
 
     const impactTrend = await sql`
-      SELECT 
+      SELECT
         date_trunc('day', created_at) as day,
         AVG(total_score) as avg_impact
       FROM leaderboard
-      WHERE created_at IS NOT NULL 
+      WHERE created_at IS NOT NULL
         AND created_at > now() - interval '30 days'
         AND total_score > 0
       GROUP BY day
