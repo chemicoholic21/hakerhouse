@@ -84,19 +84,17 @@ async function getDevs(
     }
   }
 
-  if (filters.country && filters.country !== 'all') {
-    const condition = `l.location ILIKE $${params.length + 1}`
-    if (validateCondition(condition)) {
-      conditions.push(condition)
-      params.push(`%${filters.country}%`)
-    }
-  }
+  // Location filter - handles both country dropdown and freeform location search
+  // Using filters.country for dropdown selection, filters.location for direct search
+  const locationFilter = filters.country && filters.country !== 'all'
+    ? filters.country
+    : filters.location
 
-  if (filters.location) {
+  if (locationFilter) {
     const condition = `l.location ILIKE $${params.length + 1}`
     if (validateCondition(condition)) {
       conditions.push(condition)
-      params.push(`%${filters.location}%`)
+      params.push(`%${locationFilter}%`)
     }
   }
 
