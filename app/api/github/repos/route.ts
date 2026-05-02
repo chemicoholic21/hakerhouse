@@ -26,6 +26,10 @@ interface GraphQLResponse {
   data?: {
     search: {
       nodes: GitHubRepo[]
+      pageInfo: {
+        hasNextPage: boolean
+        endCursor: string | null
+      }
     }
   }
   errors?: Array<{ message: string }>
@@ -44,12 +48,20 @@ export interface TrendingRepo {
   createdAt: string
 }
 
-async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
+export interface ReposResponse {
+  repos: TrendingRepo[]
+  pageInfo: {
+    hasNextPage: boolean
+    endCursor: string | null
+  }
+}
+
+async function fetchTrendingRepos(cursor?: string | null): Promise<ReposResponse> {
   const token = process.env.GITHUB_TOKEN
 
   if (!token) {
     console.error("GITHUB_TOKEN is not set")
-    return []
+    return { repos: [], pageInfo: { hasNextPage: false, endCursor: null } }
   }
 
   // Get repos created in the last 30 days, sorted by stars
@@ -57,9 +69,11 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   const dateStr = thirtyDaysAgo.toISOString().split("T")[0]
 
+  const afterClause = cursor ? `, after: "${cursor}"` : ""
+
   const query = `
     query {
-      search(query: "created:>${dateStr} stars:>100", type: REPOSITORY, first: 50) {
+      search(query: "created:>${dateStr} stars:>100 sort:stars-desc", type: REPOSITORY, first: 30${afterClause}) {
         nodes {
           ... on Repository {
             name
@@ -83,6 +97,10 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
             updatedAt
           }
         }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
     }
   `
@@ -99,18 +117,18 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
 
     if (!response.ok) {
       console.error("GitHub API error:", response.status, response.statusText)
-      return []
+      return { repos: [], pageInfo: { hasNextPage: false, endCursor: null } }
     }
 
     const result: GraphQLResponse = await response.json()
 
     if (result.errors) {
       console.error("GitHub GraphQL errors:", result.errors)
-      return []
+      return { repos: [], pageInfo: { hasNextPage: false, endCursor: null } }
     }
 
     if (!result.data?.search?.nodes) {
-      return []
+      return { repos: [], pageInfo: { hasNextPage: false, endCursor: null } }
     }
 
     // Filter out null entries and map to our format
@@ -128,20 +146,24 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
         topics: repo.repositoryTopics.nodes.map((t) => t.topic.name),
         createdAt: repo.createdAt,
       }))
-      // Sort by stars descending
-      .sort((a, b) => b.stars - a.stars)
 
-    return repos
+    return {
+      repos,
+      pageInfo: result.data.search.pageInfo,
+    }
   } catch (error) {
     console.error("Error fetching trending repos:", error)
-    return []
+    return { repos: [], pageInfo: { hasNextPage: false, endCursor: null } }
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const repos = await fetchTrendingRepos()
-    return NextResponse.json(repos)
+    const { searchParams } = new URL(request.url)
+    const cursor = searchParams.get("cursor")
+
+    const result = await fetchTrendingRepos(cursor)
+    return NextResponse.json(result)
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     console.error("Trending repos fetch error:", errorMessage)

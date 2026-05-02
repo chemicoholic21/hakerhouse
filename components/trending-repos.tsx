@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { Star, GitFork, ChevronDown, ExternalLink } from "lucide-react"
-import type { TrendingRepo } from "@/app/api/github/repos/route"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { Star, GitFork, ChevronDown, ExternalLink, Loader2 } from "lucide-react"
+import type { TrendingRepo, ReposResponse } from "@/app/api/github/repos/route"
 
 function Dropdown({
   label,
@@ -89,21 +89,92 @@ function getTimeAgo(dateStr: string): string {
 
 interface TrendingReposProps {
   initialRepos: TrendingRepo[]
+  initialPageInfo?: {
+    hasNextPage: boolean
+    endCursor: string | null
+  }
 }
 
-export function TrendingRepos({ initialRepos }: TrendingReposProps) {
+export function TrendingRepos({ initialRepos, initialPageInfo }: TrendingReposProps) {
+  const [repos, setRepos] = useState<TrendingRepo[]>(initialRepos)
   const [selectedLanguage, setSelectedLanguage] = useState<string>("all")
+  const [isLoading, setIsLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(initialPageInfo?.hasNextPage ?? true)
+  const [cursor, setCursor] = useState<string | null>(initialPageInfo?.endCursor ?? null)
+  const [error, setError] = useState<string | null>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
-  // Build language options from the actual data
+  // Build language options from all loaded repos
   const languageOptions = [
     { value: "all", label: "All" },
-    ...Array.from(new Set(initialRepos.map((r) => r.language)))
+    ...Array.from(new Set(repos.map((r) => r.language)))
       .filter((lang) => lang !== "Unknown")
       .sort()
       .map((lang) => ({ value: lang, label: lang })),
   ]
 
-  const filteredRepos = initialRepos.filter((repo) => {
+  const loadMore = useCallback(async () => {
+    if (isLoading || !hasMore) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const url = cursor
+        ? `/api/github/repos?cursor=${encodeURIComponent(cursor)}`
+        : "/api/github/repos"
+
+      const response = await fetch(url)
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch repositories")
+      }
+
+      const data: ReposResponse = await response.json()
+
+      if (data.repos && data.repos.length > 0) {
+        setRepos((prev) => {
+          // Deduplicate by fullName
+          const existing = new Set(prev.map((r) => r.fullName))
+          const newRepos = data.repos.filter((r) => !existing.has(r.fullName))
+          return [...prev, ...newRepos]
+        })
+      }
+
+      setHasMore(data.pageInfo?.hasNextPage ?? false)
+      setCursor(data.pageInfo?.endCursor ?? null)
+    } catch (err) {
+      console.error("Error loading more repos:", err)
+      setError("Failed to load more repositories")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [cursor, hasMore, isLoading])
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1, rootMargin: "100px" }
+    )
+
+    const currentRef = loadMoreRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+    }
+  }, [hasMore, isLoading, loadMore])
+
+  const filteredRepos = repos.filter((repo) => {
     return selectedLanguage === "all" || repo.language === selectedLanguage
   })
 
@@ -114,7 +185,7 @@ export function TrendingRepos({ initialRepos }: TrendingReposProps) {
           Trending Repositories
         </h2>
         <span className="text-sm text-muted-foreground">
-          New repos from the last 30 days
+          New repos from the last 30 days · {repos.length} loaded
         </span>
       </div>
 
@@ -183,11 +254,37 @@ export function TrendingRepos({ initialRepos }: TrendingReposProps) {
         ))}
       </div>
 
-      {filteredRepos.length === 0 && (
+      {filteredRepos.length === 0 && !isLoading && (
         <div className="border-2 border-dashed border-foreground/50 p-8 text-center">
           <p>No repositories match the selected filters.</p>
         </div>
       )}
+
+      {/* Infinite scroll trigger */}
+      <div ref={loadMoreRef} className="py-8 flex justify-center">
+        {isLoading && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Loading more repositories...</span>
+          </div>
+        )}
+        {error && (
+          <div className="text-red-500">
+            {error}
+            <button
+              onClick={loadMore}
+              className="ml-2 underline hover:no-underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        {!hasMore && repos.length > 0 && !isLoading && (
+          <span className="text-muted-foreground text-sm">
+            No more repositories to load
+          </span>
+        )}
+      </div>
     </section>
   )
 }
