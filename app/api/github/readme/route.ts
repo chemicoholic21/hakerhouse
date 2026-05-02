@@ -28,9 +28,8 @@ async function validatePatOwnership(
     }
 
     return { valid: true }
-  } catch (error: unknown) {
-    // Check if it's an Octokit error with status property
-    if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+  } catch (error: any) {
+    if (error.status === 401) {
       return { valid: false, error: "Invalid or expired PAT" }
     }
     return { valid: false, error: "Failed to validate PAT" }

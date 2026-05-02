@@ -37,35 +37,11 @@ export function getWriteRateLimiter(): Ratelimit {
 /**
  * Extract client identifier for rate limiting
  * Uses X-Forwarded-For header (set by reverse proxies) or falls back to a default
- *
- * Security note: X-Forwarded-For can be spoofed by clients. In production with
- * a trusted proxy (like Vercel, Cloudflare), the rightmost IP is the most reliable
- * as it's added by the first trusted proxy. For additional security, we also
- * incorporate the User-Agent to make simple bypass attempts harder.
  */
 export function getClientIdentifier(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for")
-  const userAgent = request.headers.get("user-agent") || ""
-
-  // Get the client IP - prefer the rightmost non-private IP as it's added by the trusted proxy
-  // For simple setups, fall back to the first IP
-  let ip = "anonymous"
-  if (forwarded) {
-    const ips = forwarded.split(",").map(s => s.trim()).filter(Boolean)
-    // Use last IP (most recently added by trusted proxy) if available
-    // Fall back to first IP for simpler proxy setups
-    ip = ips[ips.length - 1] || ips[0] || "anonymous"
-  }
-
-  // Empty string check - don't accept empty IPs
-  if (!ip || ip.length === 0) {
-    ip = "anonymous"
-  }
-
-  // Combine with user agent hash to make simple spoofing harder
-  // This isn't foolproof but raises the bar for bypass attempts
-  const identifier = `${ip}:${userAgent.slice(0, 50)}`
-  return identifier
+  const ip = forwarded?.split(",")[0]?.trim() || "anonymous"
+  return ip
 }
 
 export interface RateLimitResult {

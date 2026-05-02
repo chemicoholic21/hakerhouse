@@ -8,18 +8,6 @@ import {
   rateLimitExceededResponse,
 } from "@/lib/rate-limit"
 
-interface MapDataRow {
-  region: string | null;
-  dev_count: number;
-  avg_impact: number;
-  top_contributor: string;
-  top_score: number;
-}
-
-interface SqlQueryResult {
-  rows?: MapDataRow[];
-}
-
 export async function GET(request?: Request) {
   // Rate limiting - only apply for external requests (when request object is provided)
   if (request) {
