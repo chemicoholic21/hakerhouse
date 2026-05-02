@@ -119,17 +119,25 @@ async function getDevs(
   }
 
   if (filters.topic) {
-    const condition = `(l.unique_skills_json::text ILIKE $${params.length + 1} OR a.languages_json::text ILIKE $${params.length + 1})`
+    // Need separate parameter placeholders for each ILIKE comparison
+    const paramIdx1 = params.length + 1
+    const paramIdx2 = params.length + 2
+    const condition = `(l.unique_skills_json::text ILIKE $${paramIdx1} OR a.languages_json::text ILIKE $${paramIdx2})`
     if (validateCondition(condition)) {
       conditions.push(condition)
+      params.push(`%${filters.topic}%`)
       params.push(`%${filters.topic}%`)
     }
   }
 
   if (filters.username) {
-    const condition = `(l.username ILIKE $${params.length + 1} OR l.name ILIKE $${params.length + 1})`
+    // Need separate parameter placeholders for each ILIKE comparison
+    const paramIdx1 = params.length + 1
+    const paramIdx2 = params.length + 2
+    const condition = `(l.username ILIKE $${paramIdx1} OR l.name ILIKE $${paramIdx2})`
     if (validateCondition(condition)) {
       conditions.push(condition)
+      params.push(`%${filters.username}%`)
       params.push(`%${filters.username}%`)
     }
   }
