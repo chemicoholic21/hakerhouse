@@ -18,21 +18,35 @@ interface ImpactTrendProps {
 }
 
 const defaultData = [
-  { day: "1", impact: 120 },
-  { day: "5", impact: 130 },
-  { day: "10", impact: 125 },
-  { day: "15", impact: 145 },
-  { day: "20", impact: 150 },
-  { day: "25", impact: 160 },
-  { day: "30", impact: 180 },
+  { day: "Jan 1", impact: 120 },
+  { day: "Jan 5", impact: 130 },
+  { day: "Jan 10", impact: 125 },
+  { day: "Jan 15", impact: 145 },
+  { day: "Jan 20", impact: 150 },
+  { day: "Jan 25", impact: 160 },
+  { day: "Jan 30", impact: 180 },
 ];
 
+/**
+ * Format date to show "Mon D" format (e.g., "Jan 15")
+ * This preserves month context when data spans multiple months
+ */
+function formatDateLabel(dateString: string): string {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return dateString; // Return original if invalid
+  }
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  const day = date.getDate();
+  return `${month} ${day}`;
+}
+
 export function ImpactTrend({ data }: ImpactTrendProps) {
-  const chartData = data && data.length > 0 
-    ? data.map((item, i) => ({
-        day: new Date(item.day).getDate().toString(),
+  const chartData = data && data.length > 0
+    ? data.map((item) => ({
+        day: formatDateLabel(item.day),
         impact: Math.round(item.avg_impact)
-      })) 
+      }))
     : defaultData;
 
   return (

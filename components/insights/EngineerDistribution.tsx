@@ -12,12 +12,27 @@ interface EngineerDistributionProps {
   };
 }
 
+/**
+ * Normalize score to percentage (0-100)
+ * DB scores are typically 0-10, so we multiply by 10
+ * Clamp to 0-100 range to handle edge cases
+ */
+function normalizeToPercent(score: number | undefined, fallback: number): number {
+  if (score === undefined || score === null) {
+    return fallback;
+  }
+  // Scale 0-10 scores to 0-100 percentage
+  const scaled = score * 10;
+  // Clamp to valid percentage range
+  return Math.max(0, Math.min(100, scaled));
+}
+
 export function EngineerDistribution({ data }: EngineerDistributionProps) {
   const categories = [
-    { name: "Frontend", fillPercent: data?.frontend ? (data.frontend * 10) : 85 },
-    { name: "Backend", fillPercent: data?.backend ? (data.backend * 10) : 70 },
-    { name: "AI", fillPercent: data?.ai ? (data.ai * 10) : 40 },
-    { name: "DevOps", fillPercent: data?.devops ? (data.devops * 10) : 55 },
+    { name: "Frontend", fillPercent: normalizeToPercent(data?.frontend, 85) },
+    { name: "Backend", fillPercent: normalizeToPercent(data?.backend, 70) },
+    { name: "AI", fillPercent: normalizeToPercent(data?.ai, 40) },
+    { name: "DevOps", fillPercent: normalizeToPercent(data?.devops, 55) },
   ];
 
   const columns = 12;
@@ -28,7 +43,7 @@ export function EngineerDistribution({ data }: EngineerDistributionProps) {
     <div className="flex gap-8 overflow-x-auto pb-2 items-center">
       <div className="flex gap-4">
         {categories.map((category) => {
-          const filledBlocks = Math.round((Math.min(category.fillPercent, 100) / 100) * totalBlocks);
+          const filledBlocks = Math.round((category.fillPercent / 100) * totalBlocks);
 
           return (
             <div key={category.name} className="flex flex-col gap-1">

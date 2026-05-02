@@ -99,13 +99,13 @@ function Dropdown({
   )
 }
 
-export function DevsList({ 
+export function DevsList({
   initialDevs,
   skillsList,
   languages,
   countries,
   pagination
-}: { 
+}: {
   initialDevs: DevRow[]
   skillsList: { value: string; label: string }[]
   languages: { value: string; label: string }[]
@@ -114,6 +114,7 @@ export function DevsList({
     currentPage: number
     totalPages: number
     totalItems: number
+    itemsPerPage: number
   }
 }) {
   const router = useRouter()
@@ -262,7 +263,7 @@ export function DevsList({
                   className="col-span-full grid grid-cols-subgrid gap-x-3 items-center border-b border-foreground py-[11px] px-2 last:border-b-0 hover:bg-foreground hover:text-background cursor-pointer group/link"
                 >
                   <span className="text-right text-sm tabular-nums">
-                    {formatRank((pagination.currentPage - 1) * 50 + index + 1)}
+                    {formatRank((pagination.currentPage - 1) * pagination.itemsPerPage + index + 1)}
                   </span>
                   <div className="flex items-center gap-2 min-w-0">
                     <User className="w-3.5 h-3.5 shrink-0" strokeWidth={2.5} />
