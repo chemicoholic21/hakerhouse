@@ -1,17 +1,5 @@
-import { Header } from "@/components/header"
-import { TrendingRepos } from "@/components/trending-repos"
-import { buildPageMetadata } from "@/lib/seo"
-import type { TrendingRepo } from "@/app/api/github/repos/route"
+import { NextResponse } from "next/server"
 import { withCache } from "@/lib/cache"
-
-export const metadata = buildPageMetadata({
-  title: "Repositories",
-  description: "Discover trending open source repositories and projects.",
-  path: "/repos",
-})
-
-// Revalidate every 5 minutes
-export const revalidate = 300
 
 interface GitHubRepo {
   name: string
@@ -32,6 +20,7 @@ interface GitHubRepo {
     }>
   }
   createdAt: string
+  updatedAt: string
 }
 
 interface GraphQLResponse {
@@ -41,6 +30,19 @@ interface GraphQLResponse {
     }
   }
   errors?: Array<{ message: string }>
+}
+
+export interface TrendingRepo {
+  name: string
+  fullName: string
+  description: string
+  stars: number
+  forks: number
+  url: string
+  language: string
+  languageColor: string
+  topics: string[]
+  createdAt: string
 }
 
 async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
@@ -79,6 +81,7 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
               }
             }
             createdAt
+            updatedAt
           }
         }
       }
@@ -93,7 +96,6 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ query }),
-      next: { revalidate: 300 }, // Cache for 5 minutes
     })
 
     if (!response.ok) {
@@ -137,28 +139,21 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
   }
 }
 
-async function getCachedTrendingRepos(): Promise<TrendingRepo[]> {
-  return withCache("github:trending:v1", fetchTrendingRepos, 300)
-}
+export async function GET() {
+  try {
+    const repos = await withCache(
+      "github:trending:v1",
+      fetchTrendingRepos,
+      300 // Cache for 5 minutes
+    )
 
-export default async function ReposPage() {
-  const repos = await getCachedTrendingRepos()
-
-  return (
-    <div className="min-h-screen">
-      <Header />
-
-      <main className="layout-container py-8">
-        <TrendingRepos initialRepos={repos} />
-      </main>
-
-      <footer className="border-t-2 border-dashed border-foreground/70 py-6">
-        <div className="layout-container text-center text-sm">
-          <p>
-            © 2026 <span className="text-brand">hackerhou.se</span>. A home for <span className="text-highlight">human</span> programmers.
-          </p>
-        </div>
-      </footer>
-    </div>
-  )
+    return NextResponse.json(repos)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    console.error("Trending repos fetch error:", errorMessage)
+    return NextResponse.json(
+      { error: "Failed to fetch trending repos", details: errorMessage },
+      { status: 500 }
+    )
+  }
 }
