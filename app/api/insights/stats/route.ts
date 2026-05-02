@@ -68,8 +68,9 @@ export async function GET(request?: Request) {
     `;
 
     return NextResponse.json({ distribution, impactDistribution, skillsRadar, impactTrend });
-  } catch (error: any) {
-    console.error("Insights stats fetch error:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    console.error("Insights stats fetch error:", errorMessage);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -38,12 +38,15 @@ export async function GET(request?: Request) {
       JOIN Ranked r ON l.location = r.location AND r.rn = 1
       WHERE l.location IS NOT NULL AND l.location != ''
       GROUP BY l.location, r.username, r.total_score
-    `) as any;
+    `) as SqlQueryResult;
 
-    const result = (data.rows || data).map((row: any) => {
+    const rows: MapDataRow[] = Array.isArray(data) ? data : (data.rows || []);
+    const result = rows.map((row) => {
       let lat = 0, lng = 0;
+      // Guard against null/undefined region values
+      const region = row.region || '';
       for (const [city, coords] of Object.entries(cityCoordinates)) {
-        if (row.region.toLowerCase().includes(city.toLowerCase())) {
+        if (region.toLowerCase().includes(city.toLowerCase())) {
           lat = coords.lat;
           lng = coords.lng;
           break;
@@ -58,7 +61,7 @@ export async function GET(request?: Request) {
         lat,
         lng
       };
-    }).filter((row: any) => row.lat !== 0 || row.lng !== 0);
+    }).filter((row) => row.lat !== 0 || row.lng !== 0);
 
     return NextResponse.json(result);
   } catch (error) {

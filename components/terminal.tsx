@@ -41,15 +41,17 @@ const BASE_COMMANDS = [
 
 function longestCommonPrefix(strings: string[]): string {
   if (strings.length === 0) return ""
+  const first = strings[0]
+  if (!first) return ""
   const lows = strings.map((s) => s.toLowerCase())
   let i = 0
   for (;;) {
-    const ch = lows[0][i]
+    const ch = lows[0]?.[i]
     if (ch === undefined) break
     if (!lows.every((s) => s[i] === ch)) break
     i++
   }
-  return strings[0].slice(0, i)
+  return first.slice(0, i)
 }
 
 function wantsTrailingSpace(cmd: string): boolean {
@@ -82,7 +84,7 @@ function computeTabCompletion(
   const body = input.slice(lead.length)
 
   const onlyCmd = body.match(/^(\S+)$/)
-  if (onlyCmd) {
+  if (onlyCmd && onlyCmd[1]) {
     const partial = onlyCmd[1].toLowerCase()
     const matches = BASE_COMMANDS.filter((c) => c.startsWith(partial))
     if (matches.length === 0) return { kind: "none" }
@@ -101,10 +103,10 @@ function computeTabCompletion(
   }
 
   const cmdAndRest = body.match(/^(\S+)\s+(.*)$/)
-  if (!cmdAndRest) return { kind: "none" }
+  if (!cmdAndRest || !cmdAndRest[1]) return { kind: "none" }
 
   const cmd = cmdAndRest[1].toLowerCase()
-  const rest = cmdAndRest[2]
+  const rest = cmdAndRest[2] ?? ""
 
   if (cmd === "echo") {
     return { kind: "none" }

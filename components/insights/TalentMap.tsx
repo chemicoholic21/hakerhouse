@@ -4,8 +4,23 @@ import React, { useState, useEffect } from "react";
 import WorldMap from "@/components/ui/world-map";
 import { MapTooltip } from "./MapTooltip";
 
-export function TalentMap({ data }: { data: any[] }) {
-  const [tooltipData, setTooltipData] = useState<any>(null);
+interface CityData {
+  lat: number;
+  lng: number;
+  region: string;
+  dev_count: number;
+  avg_impact: number;
+  top_contributor: string;
+  top_score: number;
+}
+
+interface MapPoint extends CityData {
+  size: number;
+  label?: string;
+}
+
+export function TalentMap({ data }: { data: CityData[] }) {
+  const [tooltipData, setTooltipData] = useState<MapPoint | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [isMounted, setIsMounted] = useState(false);
 
@@ -19,12 +34,10 @@ export function TalentMap({ data }: { data: any[] }) {
 
   if (!isMounted) return null;
 
-  const points = data.map(city => ({
-    lat: city.lat,
-    lng: city.lng,
+  const points: MapPoint[] = data.map(city => ({
+    ...city,
     size: city.dev_count > 100 ? 6 : city.dev_count > 10 ? 4 : 2,
     label: city.dev_count > 10 ? city.region : undefined,
-    ...city
   }));
 
   const sortedData = [...data].sort((a, b) => b.dev_count - a.dev_count);
@@ -54,10 +67,10 @@ export function TalentMap({ data }: { data: any[] }) {
         className="hidden md:block relative w-full aspect-[2/1] border border-dashed border-[#00E5CC] bg-[#0a0a0a] overflow-hidden" 
         onMouseMove={handleMouseMove}
       >
-        <WorldMap 
-          points={points} 
-          lineColor="#00E5CC" 
-          onPointHover={(point) => setTooltipData(point as any)}
+        <WorldMap
+          points={points}
+          lineColor="#00E5CC"
+          onPointHover={(point) => setTooltipData(point as MapPoint)}
           onPointLeave={() => setTooltipData(null)}
         />
 

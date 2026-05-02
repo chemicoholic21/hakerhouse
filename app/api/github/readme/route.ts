@@ -97,9 +97,10 @@ export async function POST(req: Request) {
       if (data && !Array.isArray(data) && "sha" in data) {
         sha = data.sha
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If the file doesn't exist, GitHub API will return a 404 error
-      if (error.status !== 404) {
+      const isNotFound = error && typeof error === 'object' && 'status' in error && error.status === 404
+      if (!isNotFound) {
         console.error("Error getting README.md:", error)
         return NextResponse.json({ message: "Error accessing repository" }, { status: 500 })
       }
@@ -127,8 +128,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ message: "README updated successfully" }, { status: 200 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating README:", error)
-    return NextResponse.json({ message: "Error updating README", error: error.message }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ message: "Error updating README", error: errorMessage }, { status: 500 })
   }
 }
