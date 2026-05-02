@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { cityCoordinates } from '@/lib/geo/cityCoordinates';
 import {
-  getApiRateLimiter,
   getClientIdentifier,
-  checkRateLimit,
+  checkApiRateLimit,
   rateLimitExceededResponse,
 } from "@/lib/rate-limit"
 
@@ -23,9 +22,8 @@ interface SqlQueryResult {
 export async function GET(request?: Request) {
   // Rate limiting - only apply for external requests (when request object is provided)
   if (request) {
-    const rateLimiter = getApiRateLimiter()
     const clientId = getClientIdentifier(request)
-    const rateLimitResult = await checkRateLimit(clientId, rateLimiter)
+    const rateLimitResult = checkApiRateLimit(clientId)
 
     if (!rateLimitResult.success) {
       return rateLimitExceededResponse(rateLimitResult)

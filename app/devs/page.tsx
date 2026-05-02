@@ -3,7 +3,6 @@ import { sql } from "@/lib/db"
 import { DevsList, type DevRow } from "@/components/devs-list"
 import { languages, countries } from "@/lib/data"
 import { buildPageMetadata } from "@/lib/seo"
-import { withCache } from "@/lib/cache"
 import {
   buildWhereClause,
   validateCondition,
@@ -232,16 +231,6 @@ async function getDevs(
   }
 }
 
-async function getCachedDevs(page: number, filters: { skill?: string; language?: string; country?: string; openTo?: string; username?: string; location?: string; topic?: string }) {
-  // Use v2 cache key to invalidate old cache entries
-  const cacheKey = `devs:v2:p${page}:${JSON.stringify(filters)}`
-  return withCache(cacheKey, () => getDevs(page, filters), 60)
-}
-
-async function getCachedSkillsList() {
-  const cacheKey = 'skills:list:v1'
-  return withCache(cacheKey, () => getSkillsList(), 300) // Cache for 5 minutes
-}
 
 export default async function DevsPage({
   searchParams,
@@ -260,8 +249,8 @@ export default async function DevsPage({
 
   // Fetch devs and skills list in parallel
   const [{ devs, totalItems, totalPages }, skillsList] = await Promise.all([
-    getCachedDevs(page, { skill, language, country, openTo, username, location, topic }),
-    getCachedSkillsList()
+    getDevs(page, { skill, language, country, openTo, username, location, topic }),
+    getSkillsList()
   ])
 
   return (
