@@ -26,6 +26,22 @@ interface SkillOption {
   label: string
 }
 
+interface SkillRow {
+  slug: string
+  display_name: string
+  user_count: number
+}
+
+interface LeaderboardRow {
+  name: string | null
+  username: string
+  country: string | null
+  score: number | null
+  skill_score?: number | null
+  unique_skills_json: string | null
+  languages_json: string | null
+}
+
 /**
  * Fetch skills list from the database
  * Only shows skills that have at least one user with a computed score
@@ -47,10 +63,10 @@ async function getSkillsList(): Promise<SkillOption[]> {
         ELSE 6
       END,
       COUNT(uss.username) DESC
-  `
+  ` as SkillRow[]
   return [
     { value: 'all', label: 'All' },
-    ...skills.map((s: any) => ({ value: s.slug, label: `${s.display_name} (${s.user_count})` }))
+    ...skills.map((s) => ({ value: s.slug, label: `${s.display_name} (${s.user_count})` }))
   ]
 }
 
@@ -65,10 +81,11 @@ async function getDevs(
 
   // Base conditions - all conditions use parameterized values
   const conditions: string[] = []
-  const params: any[] = []
+  const params: (string | number)[] = []
 
   // When filtering by skill, we JOIN on user_skill_scores
-  if (useSkillScoring) {
+  // Note: useSkillScoring already ensures filters.skill is defined and not 'all'
+  if (useSkillScoring && filters.skill) {
     const condition = `uss.skill_slug = $${params.length + 1}`
     if (validateCondition(condition)) {
       conditions.push(condition)
@@ -157,7 +174,7 @@ async function getDevs(
 
   const totalItems = Number(countResult[0].count)
 
-  const devs: DevRow[] = dbData.map((row: any) => {
+  const devs: DevRow[] = (dbData as LeaderboardRow[]).map((row) => {
     let skills: string[] = []
     try {
       if (row.unique_skills_json) {
@@ -199,7 +216,7 @@ async function getDevs(
   }
 }
 
-async function getCachedDevs(page: number, filters: any) {
+async function getCachedDevs(page: number, filters: { skill?: string; language?: string; country?: string; openTo?: string; username?: string; location?: string; topic?: string }) {
   // Use v2 cache key to invalidate old cache entries
   const cacheKey = `devs:v2:p${page}:${JSON.stringify(filters)}`
   return withCache(cacheKey, () => getDevs(page, filters), 60)
@@ -244,7 +261,8 @@ export default async function DevsPage({
           pagination={{
             currentPage: page,
             totalPages,
-            totalItems
+            totalItems,
+            itemsPerPage: ITEMS_PER_PAGE
           }}
         />
       </main>

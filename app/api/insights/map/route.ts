@@ -64,8 +64,9 @@ export async function GET(request?: Request) {
     }).filter((row) => row.lat !== 0 || row.lng !== 0);
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("Map data fetch error:", error);
-    return NextResponse.json({ error: 'Failed to fetch map data' }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Map data fetch error:", errorMessage);
+    return NextResponse.json({ error: 'Failed to fetch map data', details: errorMessage }, { status: 500 });
   }
 }
