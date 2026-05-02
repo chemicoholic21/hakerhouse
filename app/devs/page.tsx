@@ -38,8 +38,9 @@ interface LeaderboardRow {
   country: string | null
   score: number | null
   skill_score?: number | null
-  unique_skills_json: string | null
-  languages_json: string | null
+  // JSONB columns may be returned as strings or already-parsed objects
+  unique_skills_json: string | string[] | null
+  languages_json: string | string[] | Record<string, unknown> | null
 }
 
 /**
@@ -178,24 +179,33 @@ async function getDevs(
     let skills: string[] = []
     try {
       if (row.unique_skills_json) {
-        skills = JSON.parse(row.unique_skills_json)
+        // JSONB columns may be returned as already-parsed objects by Neon
+        const skillsData = typeof row.unique_skills_json === 'string'
+          ? JSON.parse(row.unique_skills_json)
+          : row.unique_skills_json
+        if (Array.isArray(skillsData)) {
+          skills = skillsData
+        }
       }
     } catch (e) {
-      console.error("Failed to parse skills for", row.username)
+      console.error("Failed to parse skills for", row.username, e)
     }
 
     let language = "Unknown"
     try {
       if (row.languages_json) {
-        const langs = JSON.parse(row.languages_json)
+        // JSONB columns may be returned as already-parsed objects by Neon
+        const langs = typeof row.languages_json === 'string'
+          ? JSON.parse(row.languages_json)
+          : row.languages_json
         if (Array.isArray(langs) && langs.length > 0) {
           language = langs[0]
-        } else if (typeof langs === 'object') {
+        } else if (typeof langs === 'object' && langs !== null) {
           language = Object.keys(langs)[0] || "Unknown"
         }
       }
     } catch (e) {
-      console.error("Failed to parse languages for", row.username)
+      console.error("Failed to parse languages for", row.username, e)
     }
 
     return {

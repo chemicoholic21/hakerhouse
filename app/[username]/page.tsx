@@ -49,10 +49,16 @@ export default async function UserProfilePage({
   if (!dbData) notFound()
 
   // Parse unique_skills_json safely
+  // JSONB columns may be returned as already-parsed objects by Neon
   let skills: string[] = []
   try {
     if (dbData.unique_skills_json) {
-      skills = JSON.parse(dbData.unique_skills_json)
+      const skillsData = typeof dbData.unique_skills_json === 'string'
+        ? JSON.parse(dbData.unique_skills_json)
+        : dbData.unique_skills_json
+      if (Array.isArray(skillsData)) {
+        skills = skillsData
+      }
     }
   } catch (e) {
     console.error("Failed to parse skills", e)
@@ -63,13 +69,16 @@ export default async function UserProfilePage({
   const skillsAlso = skills.slice(3)
 
   // Parse languages_json to get primary language
+  // JSONB columns may be returned as already-parsed objects by Neon
   let language = "Unknown"
   try {
     if (dbData.languages_json) {
-      const langs = JSON.parse(dbData.languages_json)
+      const langs = typeof dbData.languages_json === 'string'
+        ? JSON.parse(dbData.languages_json)
+        : dbData.languages_json
       if (Array.isArray(langs) && langs.length > 0) {
         language = langs[0]
-      } else if (typeof langs === 'object') {
+      } else if (typeof langs === 'object' && langs !== null) {
         language = Object.keys(langs)[0] || "Unknown"
       }
     }
@@ -78,16 +87,28 @@ export default async function UserProfilePage({
   }
 
   // Parse top_repos_json into contributions
-  let contributions: any[] | undefined = undefined
+  // JSONB columns may be returned as already-parsed objects by Neon
+  interface RepoData {
+    full_name?: string
+    ownerLogin?: string
+    name?: string
+    userPRs?: number
+    stars?: number
+    language?: string
+    score?: number
+  }
+  let contributions: { kind: string; repo: string; title: string; time: string; score?: number }[] | undefined = undefined
   try {
     if (dbData.top_repos_json) {
-      const repos = JSON.parse(dbData.top_repos_json)
+      const repos = typeof dbData.top_repos_json === 'string'
+        ? JSON.parse(dbData.top_repos_json)
+        : dbData.top_repos_json
       if (Array.isArray(repos)) {
-        contributions = repos.map((r: any) => {
-          const repoName = r.full_name || (r.ownerLogin ? `${r.ownerLogin}/${r.name}` : r.name)
+        contributions = repos.map((r: RepoData) => {
+          const repoName = r.full_name || (r.ownerLogin ? `${r.ownerLogin}/${r.name}` : r.name || '')
           const prCount = r.userPRs || 0
           const stars = r.stars || 0
-          
+
           return {
             kind: "commit", // Default to commit as we don't have specific types for each
             repo: repoName,
