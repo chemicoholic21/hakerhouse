@@ -9,8 +9,8 @@ export const metadata = buildPageMetadata({
   path: "/repos",
 })
 
-// Revalidate every 5 minutes
-export const revalidate = 300
+// Force dynamic rendering to ensure fresh data on each request
+export const dynamic = 'force-dynamic'
 
 interface GitHubRepo {
   name: string
