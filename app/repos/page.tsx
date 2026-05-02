@@ -2,7 +2,6 @@ import { Header } from "@/components/header"
 import { TrendingRepos } from "@/components/trending-repos"
 import { buildPageMetadata } from "@/lib/seo"
 import type { TrendingRepo } from "@/app/api/github/repos/route"
-import { withCache } from "@/lib/cache"
 
 export const metadata = buildPageMetadata({
   title: "Repositories",
@@ -142,12 +141,9 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
   }
 }
 
-async function getCachedTrendingRepos(): Promise<TrendingRepo[]> {
-  return withCache("github:trending:v1", fetchTrendingRepos, 300)
-}
-
 export default async function ReposPage() {
-  const repos = await getCachedTrendingRepos()
+  // Fetch directly without Redis cache - Next.js handles caching via revalidate
+  const repos = await fetchTrendingRepos()
 
   return (
     <div className="min-h-screen">
