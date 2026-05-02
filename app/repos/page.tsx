@@ -47,9 +47,11 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
   const token = process.env.GITHUB_TOKEN
 
   if (!token) {
-    console.error("GITHUB_TOKEN is not set")
+    console.error("GITHUB_TOKEN is not set. Available env vars:", Object.keys(process.env).filter(k => k.includes('GITHUB') || k.includes('TOKEN')))
     return []
   }
+
+  console.log("Fetching trending repos with token starting with:", token.substring(0, 10) + "...")
 
   // Get repos created in the last 30 days, sorted by stars
   const thirtyDaysAgo = new Date()
@@ -97,11 +99,13 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
     })
 
     if (!response.ok) {
-      console.error("GitHub API error:", response.status, response.statusText)
+      const errorText = await response.text()
+      console.error("GitHub API error:", response.status, response.statusText, errorText)
       return []
     }
 
     const result: GraphQLResponse = await response.json()
+    console.log("GitHub API response received, nodes count:", result.data?.search?.nodes?.length ?? 0)
 
     if (result.errors) {
       console.error("GitHub GraphQL errors:", result.errors)
@@ -109,6 +113,7 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
     }
 
     if (!result.data?.search?.nodes) {
+      console.error("No search nodes in response:", JSON.stringify(result).substring(0, 200))
       return []
     }
 
