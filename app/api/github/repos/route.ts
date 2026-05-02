@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server"
-import { withCache } from "@/lib/cache"
 
 interface GitHubRepo {
   name: string
@@ -141,12 +140,7 @@ async function fetchTrendingRepos(): Promise<TrendingRepo[]> {
 
 export async function GET() {
   try {
-    const repos = await withCache(
-      "github:trending:v1",
-      fetchTrendingRepos,
-      300 // Cache for 5 minutes
-    )
-
+    const repos = await fetchTrendingRepos()
     return NextResponse.json(repos)
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error"

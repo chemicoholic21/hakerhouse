@@ -2,9 +2,8 @@ import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { Octokit } from "@octokit/rest"
 import {
-  getWriteRateLimiter,
   getClientIdentifier,
-  checkRateLimit,
+  checkWriteRateLimit,
   rateLimitExceededResponse,
 } from "@/lib/rate-limit"
 
@@ -38,9 +37,8 @@ async function validatePatOwnership(
 
 export async function POST(req: Request) {
   // Rate limiting
-  const rateLimiter = getWriteRateLimiter()
   const clientId = getClientIdentifier(req)
-  const rateLimitResult = await checkRateLimit(clientId, rateLimiter)
+  const rateLimitResult = checkWriteRateLimit(clientId)
 
   if (!rateLimitResult.success) {
     return rateLimitExceededResponse(rateLimitResult)
