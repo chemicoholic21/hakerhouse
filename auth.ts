@@ -1,6 +1,15 @@
 import NextAuth from "next-auth"
 import GitHub from "next-auth/providers/github"
 
+// Extended user type to include githubUsername from profile callback
+interface GitHubUser {
+  id: string
+  name?: string | null
+  email?: string | null
+  image?: string | null
+  githubUsername?: string
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     GitHub({
@@ -22,7 +31,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.accessToken = account.access_token
       }
       if (user) {
-        token.githubUsername = (user as any).githubUsername // Cast user to any to access githubUsername
+        // User comes from profile callback and includes githubUsername
+        const githubUser = user as GitHubUser
+        token.githubUsername = githubUser.githubUsername
       }
       return token
     },
