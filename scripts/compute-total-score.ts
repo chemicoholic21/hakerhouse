@@ -14,10 +14,14 @@
  *   npm run db:compute-total-score
  *   npx tsx scripts/compute-total-score.ts
  */
+import { config } from "dotenv"
 import { neon } from "@neondatabase/serverless"
 
+// Load environment variables from .env file
+config()
+
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is not set")
+  throw new Error("DATABASE_URL is not set. Make sure you have a .env file with DATABASE_URL defined.")
 }
 
 const sql = neon(process.env.DATABASE_URL)
