@@ -35,14 +35,16 @@ export default async function UserProfilePage({
   const username = decodeURIComponent(raw)
   
   const [dbData] = await sql`
-    SELECT 
+    SELECT
       l.*,
       a.languages_json,
       a.contribution_count,
       a.top_repos_json,
+      us.contributor_efficiency,
       (SELECT COUNT(*) + 1 FROM leaderboard l2 WHERE l2.total_score > l.total_score) as rank
     FROM leaderboard l
     LEFT JOIN analyses a ON l.username = a.username
+    LEFT JOIN user_scores us ON l.username = us.username
     WHERE l.username = ${username}
   `
 
@@ -150,6 +152,7 @@ export default async function UserProfilePage({
           devops: dbData.devops_score,
           data: dbData.data_score,
           ai: dbData.ai_score,
+          efficiency: dbData.contributor_efficiency,
         }}
       />
     </div>

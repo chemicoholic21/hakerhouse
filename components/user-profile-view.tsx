@@ -48,6 +48,7 @@ interface UserProfileViewProps {
     devops?: number
     data?: number
     ai?: number
+    efficiency?: number
   }
 }
 
@@ -145,6 +146,12 @@ export function UserProfileView({
                       <div className="flex justify-between">
                         <span>AI</span>
                         <span>{scores.ai.toLocaleString()}</span>
+                      </div>
+                    ) : null}
+                    {scores.efficiency ? (
+                      <div className="flex justify-between border-t border-dashed border-foreground/20 pt-1 mt-1">
+                        <span>Efficiency</span>
+                        <span>{scores.efficiency.toLocaleString()}</span>
                       </div>
                     ) : null}
                   </div>

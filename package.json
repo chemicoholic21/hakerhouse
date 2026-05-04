@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "db:compute-skills": "tsx scripts/compute-skill-scores.ts"
+    "db:compute-skills": "tsx scripts/compute-skill-scores.ts",
+    "db:compute-total-score": "tsx scripts/compute-total-score.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
