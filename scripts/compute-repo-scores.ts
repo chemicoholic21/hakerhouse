@@ -148,11 +148,26 @@ async function computeRepoScores(): Promise<void> {
   console.log("\nStep 3: Fetching user-repo pairs...")
 
   const userRepos = await sql`
-    SELECT username, repo_name, user_prs
+    SELECT username, repo_name, user_prs, total_prs, stars
     FROM user_repo_scores
-  ` as UserRepo[]
+  ` as (UserRepo & { total_prs: number; stars: number })[]
 
   console.log(`  Found ${userRepos.length} user-repo pairs to update`)
+
+  // Debug: Check if repo names match
+  if (userRepos.length > 0) {
+    const sampleRepoName = userRepos[0].repo_name
+    const matchInGithubRepos = repoDataMap.has(sampleRepoName)
+    const matchInTTM = repoTTMMap.has(sampleRepoName)
+    console.log(`  Sample repo: "${sampleRepoName}"`)
+    console.log(`  Matches github_repos: ${matchInGithubRepos}, Matches TTM data: ${matchInTTM}`)
+
+    // Show a few repo names from each source
+    const ursRepoNames = userRepos.slice(0, 3).map(r => r.repo_name)
+    const grRepoNames = Array.from(repoDataMap.keys()).slice(0, 3)
+    console.log(`  user_repo_scores samples: ${ursRepoNames.join(', ')}`)
+    console.log(`  github_repos samples: ${grRepoNames.join(', ')}`)
+  }
 
   // 4. Calculate and update scores
   console.log("\nStep 4: Computing and updating repo scores...")
@@ -167,11 +182,12 @@ async function computeRepoScores(): Promise<void> {
 
   for (let i = 0; i < userRepos.length; i++) {
     const userRepo = userRepos[i]
-    const repo = repoDataMap.get(userRepo.repo_name)
     const ttmInfo = repoTTMMap.get(userRepo.repo_name)
 
-    // Get total PRs - prefer from github_repos, fall back to user_repo_scores
-    const totalPRs = repo?.total_prs || 0
+    // Get total PRs from user_repo_scores directly (it has total_prs column)
+    // Fall back to github_repos if needed
+    const repo = repoDataMap.get(userRepo.repo_name)
+    const totalPRs = userRepo.total_prs || repo?.total_prs || 0
 
     if (totalPRs === 0) {
       skippedCount++
@@ -252,26 +268,31 @@ async function computeRepoScores(): Promise<void> {
   // 7. Show score distribution
   const distribution = await sql`
     SELECT
-      CASE
-        WHEN repo_score = 0 THEN '0'
-        WHEN repo_score < 1 THEN '0-1'
-        WHEN repo_score < 5 THEN '1-5'
-        WHEN repo_score < 10 THEN '5-10'
-        WHEN repo_score < 20 THEN '10-20'
-        ELSE '20+'
-      END as score_range,
-      COUNT(*) as count
-    FROM user_repo_scores
-    GROUP BY 1
-    ORDER BY
-      CASE
-        WHEN repo_score = 0 THEN 0
-        WHEN repo_score < 1 THEN 1
-        WHEN repo_score < 5 THEN 2
-        WHEN repo_score < 10 THEN 3
-        WHEN repo_score < 20 THEN 4
-        ELSE 5
-      END
+      score_range,
+      count
+    FROM (
+      SELECT
+        CASE
+          WHEN repo_score = 0 OR repo_score IS NULL THEN '0'
+          WHEN repo_score < 1 THEN '0-1'
+          WHEN repo_score < 5 THEN '1-5'
+          WHEN repo_score < 10 THEN '5-10'
+          WHEN repo_score < 20 THEN '10-20'
+          ELSE '20+'
+        END as score_range,
+        CASE
+          WHEN repo_score = 0 OR repo_score IS NULL THEN 0
+          WHEN repo_score < 1 THEN 1
+          WHEN repo_score < 5 THEN 2
+          WHEN repo_score < 10 THEN 3
+          WHEN repo_score < 20 THEN 4
+          ELSE 5
+        END as sort_order,
+        COUNT(*) as count
+      FROM user_repo_scores
+      GROUP BY 1, 2
+    ) sub
+    ORDER BY sort_order
   `
 
   console.log("\nScore distribution:")
