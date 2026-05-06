@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { User, ChevronDown, TrendingUp, ChevronLeft, ChevronRight, Search, MapPin, Hash } from "lucide-react"
+import { User, ChevronDown, TrendingUp, ChevronLeft, ChevronRight, Search, MapPin } from "lucide-react"
+import { TopicCombobox, type TopicOption } from "./topic-combobox"
 
 export interface DevRow {
   name: string
@@ -104,12 +105,14 @@ export function DevsList({
   skillsList,
   languages,
   countries,
+  topicOptions,
   pagination
 }: {
   initialDevs: DevRow[]
   skillsList: { value: string; label: string }[]
   languages: { value: string; label: string }[]
   countries: { value: string; label: string }[]
+  topicOptions: TopicOption[]
   pagination: {
     currentPage: number
     totalPages: number
@@ -127,7 +130,8 @@ export function DevsList({
   const currentOpenTo = searchParams.get("openTo") || "all"
   const currentUsername = searchParams.get("username") || ""
   const currentLocation = searchParams.get("location") || ""
-  const currentTopic = searchParams.get("topic") || ""
+  // Topics can be comma-separated for multiple values
+  const currentTopics = searchParams.get("topics")?.split(",").filter(Boolean) || []
 
   const updateFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -135,6 +139,18 @@ export function DevsList({
       params.delete(key)
     } else {
       params.set(key, value)
+    }
+    // Reset to page 1 when filter changes
+    params.set("page", "1")
+    router.push(`?${params.toString()}`)
+  }
+
+  const updateTopics = (topics: string[]) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (topics.length === 0) {
+      params.delete("topics")
+    } else {
+      params.set("topics", topics.join(","))
     }
     // Reset to page 1 when filter changes
     params.set("page", "1")
@@ -194,26 +210,12 @@ export function DevsList({
             className="w-full bg-background border-2 border-foreground pl-10 pr-3 py-1 text-sm focus:outline-none focus:bg-foreground focus:text-background placeholder:text-muted-foreground"
           />
         </div>
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            key={currentTopic}
-            type="text"
-            placeholder="Filter by topic..."
-            defaultValue={currentTopic}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                updateFilter("topic", e.currentTarget.value)
-              }
-            }}
-            onBlur={(e) => {
-              if (e.currentTarget.value !== currentTopic) {
-                updateFilter("topic", e.currentTarget.value)
-              }
-            }}
-            className="w-full bg-background border-2 border-foreground pl-10 pr-3 py-1 text-sm focus:outline-none focus:bg-foreground focus:text-background placeholder:text-muted-foreground"
-          />
-        </div>
+        <TopicCombobox
+          options={topicOptions}
+          selectedTopics={currentTopics}
+          onChange={updateTopics}
+          placeholder="Filter by topics..."
+        />
         <Dropdown
           label="Skill"
           value={currentSkill}
