@@ -40,6 +40,11 @@ const ALLOWED_COLUMNS = [
   "l.unique_skills_json",
   "uss.skill_slug",
   "uss.score",
+  // For topic filtering with EXISTS subquery
+  "urs.username",
+  "urs.repo_name",
+  "gr.repo_name",
+  "gr.topics",
 ] as const
 
 const DANGEROUS_PATTERNS = [

@@ -120,15 +120,19 @@ async function getDevs(
   }
 
   if (filters.topics && filters.topics.length > 0) {
-    // Build conditions for each topic (all topics must match - AND logic)
+    // Use EXISTS with github_repos.topics array for efficient topic filtering
+    // This finds devs who contributed to repos with matching topics
     for (const topic of filters.topics) {
-      const paramIdx1 = params.length + 1
-      const paramIdx2 = params.length + 2
-      const condition = `(l.unique_skills_json::text ILIKE $${paramIdx1} OR a.languages_json::text ILIKE $${paramIdx2})`
+      const paramIdx = params.length + 1
+      const condition = `EXISTS (
+        SELECT 1 FROM user_repo_scores urs
+        JOIN github_repos gr ON urs.repo_name = gr.repo_name
+        WHERE urs.username = l.username
+        AND $${paramIdx} = ANY(gr.topics)
+      )`
       if (validateCondition(condition)) {
         conditions.push(condition)
-        params.push(`%${topic}%`)
-        params.push(`%${topic}%`)
+        params.push(topic)
       }
     }
   }
