@@ -42,10 +42,6 @@ interface LeaderboardRow {
   languages_json: string | string[] | Record<string, unknown> | null
 }
 
-interface TopicOption {
-  value: string
-  label: string
-}
 
 /**
  * Fetch skills list from the database
@@ -75,26 +71,6 @@ async function getSkillsList(): Promise<SkillOption[]> {
   ]
 }
 
-/**
- * Fetch topic options for the combobox
- * Returns skills/topics with their display names and user counts
- */
-async function getTopicOptions(): Promise<TopicOption[]> {
-  const topics = await sql`
-    SELECT s.slug, s.display_name, COUNT(uss.username) as user_count
-    FROM skills s
-    INNER JOIN user_skill_scores uss ON s.slug = uss.skill_slug
-    GROUP BY s.slug, s.display_name, s.category
-    HAVING COUNT(uss.username) > 0
-    ORDER BY
-      COUNT(uss.username) DESC,
-      s.display_name ASC
-  ` as SkillRow[]
-  return topics.map((t) => ({
-    value: t.slug,
-    label: `${t.display_name} (${t.user_count})`
-  }))
-}
 
 async function getDevs(
   page: number,
@@ -279,11 +255,10 @@ export default async function DevsPage({
   const topicsParam = typeof resolvedParams.topics === 'string' ? resolvedParams.topics : undefined
   const topics = topicsParam ? topicsParam.split(',').filter(Boolean) : undefined
 
-  // Fetch devs, skills list, and topic options in parallel
-  const [{ devs, totalItems, totalPages }, skillsList, topicOptions] = await Promise.all([
+  // Fetch devs and skills list in parallel
+  const [{ devs, totalItems, totalPages }, skillsList] = await Promise.all([
     getDevs(page, { skill, language, country, openTo, username, location, topics }),
-    getSkillsList(),
-    getTopicOptions()
+    getSkillsList()
   ])
 
   return (
@@ -296,7 +271,6 @@ export default async function DevsPage({
           skillsList={skillsList}
           languages={languages}
           countries={countries}
-          topicOptions={topicOptions}
           pagination={{
             currentPage: page,
             totalPages,

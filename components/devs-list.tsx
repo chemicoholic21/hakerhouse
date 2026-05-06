@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { User, ChevronDown, TrendingUp, ChevronLeft, ChevronRight, Search, MapPin } from "lucide-react"
-import { TopicCombobox, type TopicOption } from "./topic-combobox"
+import { TopicCombobox } from "./topic-combobox"
 
 export interface DevRow {
   name: string
@@ -105,14 +105,12 @@ export function DevsList({
   skillsList,
   languages,
   countries,
-  topicOptions,
   pagination
 }: {
   initialDevs: DevRow[]
   skillsList: { value: string; label: string }[]
   languages: { value: string; label: string }[]
   countries: { value: string; label: string }[]
-  topicOptions: TopicOption[]
   pagination: {
     currentPage: number
     totalPages: number
@@ -211,7 +209,6 @@ export function DevsList({
           />
         </div>
         <TopicCombobox
-          options={topicOptions}
           selectedTopics={currentTopics}
           onChange={updateTopics}
           placeholder="Filter by topics..."
