@@ -32,7 +32,7 @@ if (!process.env.DATABASE_URL) {
 const sql = neon(process.env.DATABASE_URL)
 
 // Configuration
-const SCALE = 10 // Score multiplier
+const SCALE = 100 // Score multiplier (increased for more granularity)
 const TTM_HALF_LIFE_HOURS = 72 // Hours at which TTM factor = 0.5 (3 days)
 const DEFAULT_TTM_HOURS = 168 // Default TTM if no merged PRs (7 days)
 
@@ -144,29 +144,36 @@ async function computeRepoScores(): Promise<void> {
     repoDataMap.set(repo.repo_name, repo)
   }
 
-  // 3. Get all user-repo pairs from user_repo_scores
-  console.log("\nStep 3: Fetching user-repo pairs...")
+  // 3. Get all user-repo pairs from user_repo_scores WITH total_prs from github_repos
+  console.log("\nStep 3: Fetching user-repo pairs with joined repo data...")
 
   const userRepos = await sql`
-    SELECT username, repo_name, user_prs, total_prs, stars
-    FROM user_repo_scores
+    SELECT
+      urs.username,
+      urs.repo_name,
+      urs.user_prs,
+      COALESCE(gr.total_prs, urs.total_prs, 0) as total_prs,
+      COALESCE(gr.stars, urs.stars, 0) as stars
+    FROM user_repo_scores urs
+    LEFT JOIN github_repos gr ON urs.repo_name = gr.repo_name
   ` as (UserRepo & { total_prs: number; stars: number })[]
 
   console.log(`  Found ${userRepos.length} user-repo pairs to update`)
 
-  // Debug: Check if repo names match
-  if (userRepos.length > 0) {
-    const sampleRepoName = userRepos[0].repo_name
-    const matchInGithubRepos = repoDataMap.has(sampleRepoName)
-    const matchInTTM = repoTTMMap.has(sampleRepoName)
-    console.log(`  Sample repo: "${sampleRepoName}"`)
-    console.log(`  Matches github_repos: ${matchInGithubRepos}, Matches TTM data: ${matchInTTM}`)
+  // Debug: Check data quality
+  const withTotalPRs = userRepos.filter(r => r.total_prs > 0).length
+  const withTTM = userRepos.filter(r => repoTTMMap.has(r.repo_name)).length
+  console.log(`  Repos with total_prs > 0: ${withTotalPRs}`)
+  console.log(`  Repos with TTM data: ${withTTM}`)
 
-    // Show a few repo names from each source
-    const ursRepoNames = userRepos.slice(0, 3).map(r => r.repo_name)
-    const grRepoNames = Array.from(repoDataMap.keys()).slice(0, 3)
-    console.log(`  user_repo_scores samples: ${ursRepoNames.join(', ')}`)
-    console.log(`  github_repos samples: ${grRepoNames.join(', ')}`)
+  // Show sample repos
+  if (userRepos.length > 0) {
+    const samples = userRepos.filter(r => r.total_prs > 0).slice(0, 3)
+    console.log(`  Sample repos with PRs:`)
+    for (const s of samples) {
+      const ttm = repoTTMMap.get(s.repo_name)
+      console.log(`    ${s.repo_name}: ${s.total_prs} PRs, TTM: ${ttm?.median_ttm_hours?.toFixed(1) || 'N/A'}h`)
+    }
   }
 
   // 4. Calculate and update scores
@@ -184,10 +191,8 @@ async function computeRepoScores(): Promise<void> {
     const userRepo = userRepos[i]
     const ttmInfo = repoTTMMap.get(userRepo.repo_name)
 
-    // Get total PRs from user_repo_scores directly (it has total_prs column)
-    // Fall back to github_repos if needed
-    const repo = repoDataMap.get(userRepo.repo_name)
-    const totalPRs = userRepo.total_prs || repo?.total_prs || 0
+    // total_prs comes from the joined query (COALESCE of github_repos and user_repo_scores)
+    const totalPRs = userRepo.total_prs
 
     if (totalPRs === 0) {
       skippedCount++
@@ -265,7 +270,7 @@ async function computeRepoScores(): Promise<void> {
     stars: r.stars || 0
   })))
 
-  // 7. Show score distribution
+  // 7. Show score distribution (adjusted for Scale=100)
   const distribution = await sql`
     SELECT
       score_range,
@@ -274,19 +279,21 @@ async function computeRepoScores(): Promise<void> {
       SELECT
         CASE
           WHEN repo_score = 0 OR repo_score IS NULL THEN '0'
-          WHEN repo_score < 1 THEN '0-1'
-          WHEN repo_score < 5 THEN '1-5'
-          WHEN repo_score < 10 THEN '5-10'
-          WHEN repo_score < 20 THEN '10-20'
-          ELSE '20+'
+          WHEN repo_score < 10 THEN '0-10'
+          WHEN repo_score < 50 THEN '10-50'
+          WHEN repo_score < 100 THEN '50-100'
+          WHEN repo_score < 200 THEN '100-200'
+          WHEN repo_score < 500 THEN '200-500'
+          ELSE '500+'
         END as score_range,
         CASE
           WHEN repo_score = 0 OR repo_score IS NULL THEN 0
-          WHEN repo_score < 1 THEN 1
-          WHEN repo_score < 5 THEN 2
-          WHEN repo_score < 10 THEN 3
-          WHEN repo_score < 20 THEN 4
-          ELSE 5
+          WHEN repo_score < 10 THEN 1
+          WHEN repo_score < 50 THEN 2
+          WHEN repo_score < 100 THEN 3
+          WHEN repo_score < 200 THEN 4
+          WHEN repo_score < 500 THEN 5
+          ELSE 6
         END as sort_order,
         COUNT(*) as count
       FROM user_repo_scores
