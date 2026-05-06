@@ -6,6 +6,7 @@ import { Hash, X } from "lucide-react"
 export interface TopicOption {
   value: string
   label: string
+  keywords?: string[] // Additional searchable terms (e.g., "langchain", "llm" for AI/ML)
 }
 
 interface TopicComboboxProps {
@@ -27,13 +28,29 @@ export function TopicCombobox({
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Extended option type with matched keyword info
+  type FilteredOption = TopicOption & { matchedKeyword?: string }
+
   // Filter options based on input and exclude already selected
-  const filteredOptions = options.filter(option => {
-    const matchesSearch = option.label.toLowerCase().includes(inputValue.toLowerCase()) ||
-                          option.value.toLowerCase().includes(inputValue.toLowerCase())
-    const notSelected = !selectedTopics.includes(option.value)
-    return matchesSearch && notSelected
-  })
+  // Returns options with matched keyword info for display
+  const filteredOptions: FilteredOption[] = options
+    .reduce<FilteredOption[]>((acc, option) => {
+      const searchTerm = inputValue.toLowerCase()
+      // Match against label, value, or any keyword
+      const matchesLabel = option.label.toLowerCase().includes(searchTerm)
+      const matchesValue = option.value.toLowerCase().includes(searchTerm)
+      const matchedKeyword = option.keywords?.find(kw => kw.toLowerCase().includes(searchTerm))
+      const matchesSearch = matchesLabel || matchesValue || !!matchedKeyword
+      const notSelected = !selectedTopics.includes(option.value)
+
+      if (matchesSearch && notSelected) {
+        acc.push({
+          ...option,
+          matchedKeyword: (!matchesLabel && !matchesValue) ? matchedKeyword : undefined
+        })
+      }
+      return acc
+    }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -152,7 +169,12 @@ export function TopicCombobox({
                 index === highlightedIndex ? "bg-foreground/10" : ""
               }`}
             >
-              {option.label}
+              <span>{option.label}</span>
+              {option.matchedKeyword && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  via &quot;{option.matchedKeyword}&quot;
+                </span>
+              )}
             </button>
           ))}
         </div>
