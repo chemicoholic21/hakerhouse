@@ -42,11 +42,6 @@ interface LeaderboardRow {
   languages_json: string | string[] | Record<string, unknown> | null
 }
 
-interface TopicOption {
-  value: string
-  label: string
-  keywords?: string[] // Additional searchable terms
-}
 
 /**
  * Fetch skills list from the database
@@ -76,45 +71,6 @@ async function getSkillsList(): Promise<SkillOption[]> {
   ]
 }
 
-interface TopicRow {
-  slug: string
-  display_name: string
-  user_count: number
-  match_topics: string[] | null
-  match_keywords: string[] | null
-}
-
-/**
- * Fetch topic options for the combobox
- * Returns skills/topics with their display names, user counts, and searchable keywords
- */
-async function getTopicOptions(): Promise<TopicOption[]> {
-  const topics = await sql`
-    SELECT
-      s.slug,
-      s.display_name,
-      s.match_topics,
-      s.match_keywords,
-      COUNT(uss.username) as user_count
-    FROM skills s
-    INNER JOIN user_skill_scores uss ON s.slug = uss.skill_slug
-    GROUP BY s.slug, s.display_name, s.match_topics, s.match_keywords, s.category
-    HAVING COUNT(uss.username) > 0
-    ORDER BY
-      COUNT(uss.username) DESC,
-      s.display_name ASC
-  ` as TopicRow[]
-
-  return topics.map((t) => ({
-    value: t.slug,
-    label: `${t.display_name} (${t.user_count})`,
-    // Combine match_topics and match_keywords for searchable terms
-    keywords: [
-      ...(t.match_topics || []),
-      ...(t.match_keywords || [])
-    ]
-  }))
-}
 
 async function getDevs(
   page: number,
@@ -299,11 +255,10 @@ export default async function DevsPage({
   const topicsParam = typeof resolvedParams.topics === 'string' ? resolvedParams.topics : undefined
   const topics = topicsParam ? topicsParam.split(',').filter(Boolean) : undefined
 
-  // Fetch devs, skills list, and topic options in parallel
-  const [{ devs, totalItems, totalPages }, skillsList, topicOptions] = await Promise.all([
+  // Fetch devs and skills list in parallel
+  const [{ devs, totalItems, totalPages }, skillsList] = await Promise.all([
     getDevs(page, { skill, language, country, openTo, username, location, topics }),
-    getSkillsList(),
-    getTopicOptions()
+    getSkillsList()
   ])
 
   return (
@@ -316,7 +271,6 @@ export default async function DevsPage({
           skillsList={skillsList}
           languages={languages}
           countries={countries}
-          topicOptions={topicOptions}
           pagination={{
             currentPage: page,
             totalPages,

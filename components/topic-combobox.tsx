@@ -1,56 +1,84 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Hash, X } from "lucide-react"
+import { Hash, X, Loader2 } from "lucide-react"
 
 export interface TopicOption {
   value: string
   label: string
-  keywords?: string[] // Additional searchable terms (e.g., "langchain", "llm" for AI/ML)
+  source?: string // 'skill' or 'repo'
 }
 
 interface TopicComboboxProps {
-  options: TopicOption[]
   selectedTopics: string[]
   onChange: (topics: string[]) => void
   placeholder?: string
 }
 
 export function TopicCombobox({
-  options,
   selectedTopics,
   onChange,
   placeholder = "Filter by topics..."
 }: TopicComboboxProps) {
   const [inputValue, setInputValue] = useState("")
   const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<TopicOption[]>([])
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Extended option type with matched keyword info
-  type FilteredOption = TopicOption & { matchedKeyword?: string }
+  // Fetch suggestions from API
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSuggestions([])
+      return
+    }
 
-  // Filter options based on input and exclude already selected
-  // Returns options with matched keyword info for display
-  const filteredOptions: FilteredOption[] = options
-    .reduce<FilteredOption[]>((acc, option) => {
-      const searchTerm = inputValue.toLowerCase()
-      // Match against label, value, or any keyword
-      const matchesLabel = option.label.toLowerCase().includes(searchTerm)
-      const matchesValue = option.value.toLowerCase().includes(searchTerm)
-      const matchedKeyword = option.keywords?.find(kw => kw.toLowerCase().includes(searchTerm))
-      const matchesSearch = matchesLabel || matchesValue || !!matchedKeyword
-      const notSelected = !selectedTopics.includes(option.value)
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/topics?q=${encodeURIComponent(query)}`)
+      const data = await response.json()
 
-      if (matchesSearch && notSelected) {
-        acc.push({
-          ...option,
-          matchedKeyword: (!matchesLabel && !matchesValue) ? matchedKeyword : undefined
-        })
+      // Filter out already selected topics
+      const filtered = (data.topics || []).filter(
+        (t: TopicOption) => !selectedTopics.includes(t.value)
+      )
+      setSuggestions(filtered)
+    } catch (error) {
+      console.error("Failed to fetch topics:", error)
+      setSuggestions([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedTopics])
+
+  // Debounced search
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+
+    if (inputValue.length >= 2) {
+      debounceRef.current = setTimeout(() => {
+        fetchSuggestions(inputValue)
+      }, 200)
+    } else {
+      setSuggestions([])
+    }
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
       }
-      return acc
-    }, [])
+    }
+  }, [inputValue, fetchSuggestions])
+
+  // Reset highlighted index when suggestions change
+  useEffect(() => {
+    setHighlightedIndex(0)
+  }, [suggestions])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -63,16 +91,12 @@ export function TopicCombobox({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Reset highlighted index when filtered options change
-  useEffect(() => {
-    setHighlightedIndex(0)
-  }, [inputValue])
-
-  const addTopic = useCallback((value: string) => {
+  const addTopic = useCallback((value: string, label?: string) => {
     if (!selectedTopics.includes(value)) {
       onChange([...selectedTopics, value])
     }
     setInputValue("")
+    setSuggestions([])
     setIsOpen(false)
     inputRef.current?.focus()
   }, [selectedTopics, onChange])
@@ -85,17 +109,17 @@ export function TopicCombobox({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault()
-      if (filteredOptions.length > 0 && isOpen) {
-        addTopic(filteredOptions[highlightedIndex].value)
-      } else if (inputValue.trim()) {
-        // Allow adding custom topics that aren't in the list
+      if (suggestions.length > 0 && isOpen) {
+        addTopic(suggestions[highlightedIndex].value)
+      } else if (inputValue.trim().length >= 2) {
+        // Allow adding custom topics
         addTopic(inputValue.trim().toLowerCase())
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault()
       setIsOpen(true)
       setHighlightedIndex(prev =>
-        prev < filteredOptions.length - 1 ? prev + 1 : prev
+        prev < suggestions.length - 1 ? prev + 1 : prev
       )
     } else if (e.key === "ArrowUp") {
       e.preventDefault()
@@ -103,15 +127,10 @@ export function TopicCombobox({
     } else if (e.key === "Escape") {
       setIsOpen(false)
       setInputValue("")
+      setSuggestions([])
     } else if (e.key === "Backspace" && inputValue === "" && selectedTopics.length > 0) {
-      // Remove last topic when backspace is pressed on empty input
       removeTopic(selectedTopics[selectedTopics.length - 1])
     }
-  }
-
-  const getOptionLabel = (value: string) => {
-    const option = options.find(o => o.value === value)
-    return option?.label || value
   }
 
   return (
@@ -125,7 +144,7 @@ export function TopicCombobox({
             key={topic}
             className="inline-flex items-center gap-1 bg-foreground text-background px-2 py-0.5 text-xs font-medium"
           >
-            {getOptionLabel(topic)}
+            {topic}
             <button
               type="button"
               onClick={(e) => {
@@ -133,7 +152,7 @@ export function TopicCombobox({
                 removeTopic(topic)
               }}
               className="hover:bg-background/20 rounded-sm p-0.5"
-              aria-label={`Remove ${getOptionLabel(topic)}`}
+              aria-label={`Remove ${topic}`}
             >
               <X className="w-3 h-3" />
             </button>
@@ -154,12 +173,17 @@ export function TopicCombobox({
           placeholder={selectedTopics.length === 0 ? placeholder : "Add more..."}
           className="flex-1 min-w-[120px] bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
         />
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <Loader2 className="w-4 h-4 text-muted-foreground animate-spin shrink-0" />
+        )}
       </div>
 
       {/* Dropdown suggestions */}
-      {isOpen && filteredOptions.length > 0 && (
+      {isOpen && suggestions.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 border-2 border-foreground bg-background z-50 max-h-48 overflow-y-auto">
-          {filteredOptions.map((option, index) => (
+          {suggestions.map((option, index) => (
             <button
               key={option.value}
               type="button"
@@ -169,21 +193,23 @@ export function TopicCombobox({
                 index === highlightedIndex ? "bg-foreground/10" : ""
               }`}
             >
-              <span>{option.label}</span>
-              {option.matchedKeyword && (
-                <span className="ml-2 text-xs text-muted-foreground">
-                  via &quot;{option.matchedKeyword}&quot;
-                </span>
-              )}
+              {option.label}
             </button>
           ))}
         </div>
       )}
 
-      {/* No results message */}
-      {isOpen && inputValue && filteredOptions.length === 0 && (
+      {/* Typing hint */}
+      {isOpen && inputValue.length > 0 && inputValue.length < 2 && (
         <div className="absolute top-full left-0 right-0 mt-1 border-2 border-foreground bg-background z-50 px-3 py-2 text-sm text-muted-foreground">
-          Press Enter to add &quot;{inputValue}&quot;
+          Type at least 2 characters to search...
+        </div>
+      )}
+
+      {/* No results message */}
+      {isOpen && inputValue.length >= 2 && !isLoading && suggestions.length === 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 border-2 border-foreground bg-background z-50 px-3 py-2 text-sm text-muted-foreground">
+          Press Enter to filter by &quot;{inputValue}&quot;
         </div>
       )}
     </div>
