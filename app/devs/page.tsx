@@ -42,6 +42,11 @@ interface LeaderboardRow {
   languages_json: string | string[] | Record<string, unknown> | null
 }
 
+interface TopicOption {
+  value: string
+  label: string
+}
+
 /**
  * Fetch skills list from the database
  * Only shows skills that have at least one user with a computed score
@@ -70,9 +75,30 @@ async function getSkillsList(): Promise<SkillOption[]> {
   ]
 }
 
+/**
+ * Fetch topic options for the combobox
+ * Returns skills/topics with their display names and user counts
+ */
+async function getTopicOptions(): Promise<TopicOption[]> {
+  const topics = await sql`
+    SELECT s.slug, s.display_name, COUNT(uss.username) as user_count
+    FROM skills s
+    INNER JOIN user_skill_scores uss ON s.slug = uss.skill_slug
+    GROUP BY s.slug, s.display_name, s.category
+    HAVING COUNT(uss.username) > 0
+    ORDER BY
+      COUNT(uss.username) DESC,
+      s.display_name ASC
+  ` as SkillRow[]
+  return topics.map((t) => ({
+    value: t.slug,
+    label: `${t.display_name} (${t.user_count})`
+  }))
+}
+
 async function getDevs(
   page: number,
-  filters: { skill?: string; language?: string; country?: string; openTo?: string; username?: string; location?: string; topic?: string }
+  filters: { skill?: string; language?: string; country?: string; openTo?: string; username?: string; location?: string; topics?: string[] }
 ) {
   const offset = (page - 1) * ITEMS_PER_PAGE
 
@@ -117,15 +143,17 @@ async function getDevs(
     }
   }
 
-  if (filters.topic) {
-    // Need separate parameter placeholders for each ILIKE comparison
-    const paramIdx1 = params.length + 1
-    const paramIdx2 = params.length + 2
-    const condition = `(l.unique_skills_json::text ILIKE $${paramIdx1} OR a.languages_json::text ILIKE $${paramIdx2})`
-    if (validateCondition(condition)) {
-      conditions.push(condition)
-      params.push(`%${filters.topic}%`)
-      params.push(`%${filters.topic}%`)
+  if (filters.topics && filters.topics.length > 0) {
+    // Build conditions for each topic (all topics must match - AND logic)
+    for (const topic of filters.topics) {
+      const paramIdx1 = params.length + 1
+      const paramIdx2 = params.length + 2
+      const condition = `(l.unique_skills_json::text ILIKE $${paramIdx1} OR a.languages_json::text ILIKE $${paramIdx2})`
+      if (validateCondition(condition)) {
+        conditions.push(condition)
+        params.push(`%${topic}%`)
+        params.push(`%${topic}%`)
+      }
     }
   }
 
@@ -247,12 +275,15 @@ export default async function DevsPage({
   const openTo = typeof resolvedParams.openTo === 'string' ? resolvedParams.openTo : undefined
   const username = typeof resolvedParams.username === 'string' ? resolvedParams.username : undefined
   const location = typeof resolvedParams.location === 'string' ? resolvedParams.location : undefined
-  const topic = typeof resolvedParams.topic === 'string' ? resolvedParams.topic : undefined
+  // Parse topics from comma-separated string
+  const topicsParam = typeof resolvedParams.topics === 'string' ? resolvedParams.topics : undefined
+  const topics = topicsParam ? topicsParam.split(',').filter(Boolean) : undefined
 
-  // Fetch devs and skills list in parallel
-  const [{ devs, totalItems, totalPages }, skillsList] = await Promise.all([
-    getDevs(page, { skill, language, country, openTo, username, location, topic }),
-    getSkillsList()
+  // Fetch devs, skills list, and topic options in parallel
+  const [{ devs, totalItems, totalPages }, skillsList, topicOptions] = await Promise.all([
+    getDevs(page, { skill, language, country, openTo, username, location, topics }),
+    getSkillsList(),
+    getTopicOptions()
   ])
 
   return (
@@ -265,6 +296,7 @@ export default async function DevsPage({
           skillsList={skillsList}
           languages={languages}
           countries={countries}
+          topicOptions={topicOptions}
           pagination={{
             currentPage: page,
             totalPages,
