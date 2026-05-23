@@ -120,27 +120,17 @@ async function getDevs(
   }
 
   if (filters.topics && filters.topics.length > 0) {
-    // Topic filtering: Check both user_skill_scores (for skills) AND github_repos.topics (for repo topics)
-    // This ensures we find devs whether the topic is a skill or a repo topic
+    // Topic filtering using user_skill_scores (fast, indexed)
+    // Skills are pre-computed so this is the most efficient approach
     for (const topic of filters.topics) {
-      const paramIdx1 = params.length + 1
-      const paramIdx2 = params.length + 2
-      const condition = `(
-        EXISTS (
-          SELECT 1 FROM user_skill_scores uss
-          WHERE uss.username = l.username
-          AND uss.skill_slug = $${paramIdx1}
-        )
-        OR EXISTS (
-          SELECT 1 FROM user_repo_scores urs
-          JOIN github_repos gr ON gr.full_name = urs.repo_name
-          WHERE urs.username = l.username
-          AND $${paramIdx2} = ANY(gr.topics)
-        )
+      const paramIdx = params.length + 1
+      const condition = `EXISTS (
+        SELECT 1 FROM user_skill_scores uss
+        WHERE uss.username = l.username
+        AND uss.skill_slug = $${paramIdx}
       )`
       if (validateCondition(condition)) {
         conditions.push(condition)
-        params.push(topic)
         params.push(topic)
       }
     }

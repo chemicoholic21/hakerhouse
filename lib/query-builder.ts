@@ -40,10 +40,12 @@ const ALLOWED_COLUMNS = [
   "l.unique_skills_json",
   "uss.skill_slug",
   "uss.score",
+  "uss.username",
   // For topic filtering with EXISTS subquery
   "urs.username",
   "urs.repo_name",
   "gr.repo_name",
+  "gr.full_name",
   "gr.topics",
 ] as const
 
