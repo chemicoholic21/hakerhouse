@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get("q")?.toLowerCase().trim() || ""
 
-  if (query.length < 2) {
+  if (query.length < 1) {
     return NextResponse.json({ topics: [] })
   }
 

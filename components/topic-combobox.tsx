@@ -31,7 +31,7 @@ export function TopicCombobox({
 
   // Fetch suggestions from API
   const fetchSuggestions = useCallback(async (query: string) => {
-    if (query.length < 2) {
+    if (query.length < 1) {
       setSuggestions([])
       return
     }
@@ -60,7 +60,7 @@ export function TopicCombobox({
       clearTimeout(debounceRef.current)
     }
 
-    if (inputValue.length >= 2) {
+    if (inputValue.length >= 1) {
       debounceRef.current = setTimeout(() => {
         fetchSuggestions(inputValue)
       }, 200)
@@ -111,7 +111,7 @@ export function TopicCombobox({
       e.preventDefault()
       if (suggestions.length > 0 && isOpen) {
         addTopic(suggestions[highlightedIndex].value)
-      } else if (inputValue.trim().length >= 2) {
+      } else if (inputValue.trim().length >= 1) {
         // Allow adding custom topics
         addTopic(inputValue.trim().toLowerCase())
       }
@@ -199,15 +199,8 @@ export function TopicCombobox({
         </div>
       )}
 
-      {/* Typing hint */}
-      {isOpen && inputValue.length > 0 && inputValue.length < 2 && (
-        <div className="absolute top-full left-0 right-0 mt-1 border-2 border-foreground bg-background z-50 px-3 py-2 text-sm text-muted-foreground">
-          Type at least 2 characters to search...
-        </div>
-      )}
-
       {/* No results message */}
-      {isOpen && inputValue.length >= 2 && !isLoading && suggestions.length === 0 && (
+      {isOpen && inputValue.length >= 1 && !isLoading && suggestions.length === 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 border-2 border-foreground bg-background z-50 px-3 py-2 text-sm text-muted-foreground">
           Press Enter to filter by &quot;{inputValue}&quot;
         </div>
