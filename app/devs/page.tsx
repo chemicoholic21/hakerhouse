@@ -120,17 +120,27 @@ async function getDevs(
   }
 
   if (filters.topics && filters.topics.length > 0) {
-    // Topic filtering using user_skill_scores (fast, indexed)
-    // Skills are pre-computed so this is the most efficient approach
+    // Topic filtering: Check user_skill_scores first (fast), then repo topics
+    // This handles both pre-defined skills AND arbitrary repo topics like "html", "shell", etc.
     for (const topic of filters.topics) {
-      const paramIdx = params.length + 1
-      const condition = `EXISTS (
-        SELECT 1 FROM user_skill_scores uss
-        WHERE uss.username = l.username
-        AND uss.skill_slug = $${paramIdx}
+      const paramIdx1 = params.length + 1
+      const paramIdx2 = params.length + 2
+      const condition = `(
+        EXISTS (
+          SELECT 1 FROM user_skill_scores uss
+          WHERE uss.username = l.username
+          AND uss.skill_slug = $${paramIdx1}
+        )
+        OR EXISTS (
+          SELECT 1 FROM user_repo_scores urs
+          JOIN github_repos gr ON gr.full_name = urs.repo_name
+          WHERE urs.username = l.username
+          AND $${paramIdx2} = ANY(gr.topics)
+        )
       )`
       if (validateCondition(condition)) {
         conditions.push(condition)
+        params.push(topic)
         params.push(topic)
       }
     }
