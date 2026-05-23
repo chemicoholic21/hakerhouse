@@ -6,14 +6,14 @@ import { sql } from "@/lib/db"
  *
  * Searches for topics across:
  * 1. Skills table (display_name, match_topics, match_keywords)
- * 2. GitHub repo topics from github_repos.topics
+ * 2. Repo topics from repo_topic_counts materialized view
  *
  * Returns top 20 matching topics with user counts
  *
  * Optimizations:
  * - Pre-aggregates user counts per skill using CTE instead of correlated subqueries
- * - Uses NOT EXISTS instead of NOT IN for better performance with indexes
- * - Uses proper Postgres string concatenation syntax
+ * - Uses repo_topic_counts materialized view (34K rows) instead of unnesting 2.1M repos
+ * - Trigram index (idx_rtc_topic_trgm) enables fast ILIKE searches (~20-30ms vs ~1500ms)
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -47,26 +47,20 @@ export async function GET(request: NextRequest) {
           OR s.slug ILIKE ${'%' + query + '%'}
           OR s.match_topics::text ILIKE ${'%' + query + '%'}
           OR s.match_keywords::text ILIKE ${'%' + query + '%'}
-      ),
-      -- 3. Match repo topics from github_repos.topics array
-      repo_topic_matches AS (
-        SELECT
-          topic,
-          topic as label,
-          'repo' as source,
-          COUNT(DISTINCT repo_name) as user_count
-        FROM github_repos, unnest(topics) as topic
-        WHERE topic ILIKE ${'%' + query + '%'}
-        GROUP BY topic
-        HAVING COUNT(DISTINCT repo_name) >= 3
       )
-      -- Combine results, prefer skill matches over repo topics
+      -- Combine skill matches with repo topics from materialized view
       SELECT topic, label, source, user_count
       FROM (
         SELECT * FROM skill_matches
         UNION ALL
-        SELECT r.* FROM repo_topic_matches r
-        WHERE NOT EXISTS (SELECT 1 FROM skills s WHERE s.slug = r.topic)
+        SELECT
+          topic,
+          topic as label,
+          'repo' as source,
+          repo_count as user_count
+        FROM repo_topic_counts
+        WHERE topic ILIKE ${'%' + query + '%'}
+          AND topic NOT IN (SELECT slug FROM skills)
       ) combined
       ORDER BY user_count DESC, label ASC
       LIMIT 20
