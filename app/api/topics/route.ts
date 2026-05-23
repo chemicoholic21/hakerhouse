@@ -75,9 +75,7 @@ export async function GET(request: NextRequest) {
 
     const topics = (results as TopicResult[]).map((r) => ({
       value: r.topic,
-      label: r.source === 'skill'
-        ? `${r.label} (${r.user_count} devs)`
-        : `${r.label} (${r.user_count} repos)`,
+      label: r.label,
       source: r.source
     }))
 
