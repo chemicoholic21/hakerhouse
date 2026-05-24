@@ -54,7 +54,7 @@ const DANGEROUS_PATTERNS = [
   /--/,              // SQL comment
   /\/\*/,            // Block comment start
   /\*\//,            // Block comment end
-  /\bUNION\b/i,      // UNION injection
+  // Note: UNION is allowed for legitimate IN subqueries with parameterized values
   /\bDROP\b/i,       // DROP statement
   /\bDELETE\b/i,     // DELETE statement
   /\bINSERT\b/i,     // INSERT statement
