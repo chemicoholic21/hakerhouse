@@ -50,14 +50,13 @@ export default async function UserProfilePage({
 
   if (!dbData) notFound()
 
-  // Parse unique_skills_json safely
-  // JSONB columns may be returned as already-parsed objects by Neon
+  // Parse unique_skills safely (Postgres text[] -> JS array)
   let skills: string[] = []
   try {
-    if (dbData.unique_skills_json) {
-      const skillsData = typeof dbData.unique_skills_json === 'string'
-        ? JSON.parse(dbData.unique_skills_json)
-        : dbData.unique_skills_json
+    if (dbData.unique_skills) {
+      const skillsData = Array.isArray(dbData.unique_skills)
+        ? dbData.unique_skills
+        : []
       if (Array.isArray(skillsData)) {
         skills = skillsData
       }

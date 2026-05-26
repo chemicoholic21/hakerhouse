@@ -37,7 +37,7 @@ const ALLOWED_COLUMNS = [
   "l.location",
   "l.total_score",
   "a.languages_json",
-  "l.unique_skills_json",
+  "l.unique_skills",
   "uss.skill_slug",
   "uss.score",
   "uss.username",
