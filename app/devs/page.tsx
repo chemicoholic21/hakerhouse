@@ -37,8 +37,8 @@ interface LeaderboardRow {
   country: string | null
   score: number | null
   skill_score?: number | null
-  // JSONB columns may be returned as strings or already-parsed objects
-  unique_skills_json: string | string[] | null
+  // text[] column returned by Neon as a JS array; languages_json is JSONB
+  unique_skills: string[] | null
   languages_json: string | string[] | Record<string, unknown> | null
 }
 
@@ -178,7 +178,7 @@ async function getDevs(
         l.location as country,
         ${skillSelect}
         l.total_score as score,
-        l.unique_skills_json,
+        l.unique_skills,
         a.languages_json
       FROM leaderboard l
       LEFT JOIN analyses a ON l.username = a.username
@@ -196,11 +196,11 @@ async function getDevs(
   const devs: DevRow[] = (dbData as LeaderboardRow[]).map((row) => {
     let skills: string[] = []
     try {
-      if (row.unique_skills_json) {
-        // JSONB columns may be returned as already-parsed objects by Neon
-        const skillsData = typeof row.unique_skills_json === 'string'
-          ? JSON.parse(row.unique_skills_json)
-          : row.unique_skills_json
+      if (row.unique_skills) {
+        // unique_skills is a Postgres text[] returned by Neon as a JS array
+        const skillsData = Array.isArray(row.unique_skills)
+          ? row.unique_skills
+          : []
         if (Array.isArray(skillsData)) {
           skills = skillsData
         }

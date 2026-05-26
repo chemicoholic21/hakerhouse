@@ -121,7 +121,7 @@ The main tables:
 
 **leaderboard** - Core developer data
 - username, name, location
-- total_score, unique_skills_json, languages_json
+- total_score, unique_skills (text[]), languages_json
 - timestamps
 
 **analyses** - Computed analysis results

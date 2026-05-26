@@ -41,13 +41,8 @@ export async function GET(request?: Request) {
 
     const skillsRadar = await sql`
       SELECT skill, count(*)::int as count
-      FROM leaderboard, jsonb_array_elements_text(
-        CASE
-          WHEN jsonb_typeof(unique_skills_json) = 'array' THEN unique_skills_json
-          ELSE '[]'::jsonb
-        END
-      ) as skill
-      WHERE unique_skills_json IS NOT NULL
+      FROM leaderboard, unnest(unique_skills) as skill
+      WHERE unique_skills IS NOT NULL
       GROUP BY skill
       ORDER BY count DESC
       LIMIT 6
