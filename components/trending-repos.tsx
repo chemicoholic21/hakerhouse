@@ -286,7 +286,7 @@ export function TrendingRepos({ initialRepos, initialTotal }: TrendingReposProps
               </div>
             </div>
 
-            <p className="text-sm text-muted-foreground mb-3 line-clamp-2 ml-6 min-h-[2.5rem]">
+            <p className="text-sm mb-3 line-clamp-2 ml-6 min-h-[2.5rem]">
               {repo.description || "\u00A0"}
             </p>
 
