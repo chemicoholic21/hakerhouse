@@ -264,65 +264,55 @@ export function TrendingRepos({ initialRepos, initialTotal }: TrendingReposProps
         </form>
       </div>
 
-      <section className="border-2 border-dashed border-foreground/70 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-highlight">
-            {total} repositories
-          </h3>
-        </div>
-
-        <div className="overflow-x-auto -mx-1 px-1">
-          <div className="border-y border-foreground min-w-[min(100%,40rem)]">
-            {repos.map((repo) => (
-              <Link
-                key={repo.fullName}
-                href={`/repos/${repo.owner}/${repo.name}`}
-                className="flex items-start gap-3 py-4 px-3 border-b border-foreground last:border-b-0 hover:bg-foreground hover:text-background group"
-              >
-                <div
-                  className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
-                  style={{ backgroundColor: getLanguageColor(repo.language) }}
-                />
-
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-bold group-hover:underline text-highlight">
-                    {repo.fullName}
-                  </span>
-                  {repo.description && (
-                    <p className="text-xs text-muted-foreground group-hover:text-background/70 mt-1 leading-relaxed">
-                      {repo.description.length > 120 ? repo.description.slice(0, 120) + "…" : repo.description}
-                    </p>
-                  )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {repos.map((repo) => (
+          <Link
+            key={repo.fullName}
+            href={`/repos/${repo.owner}/${repo.name}`}
+            className="border-2 border-foreground px-4 py-5 flex flex-col group hover:bg-foreground/[0.03]"
+          >
+            <div className="flex items-start gap-3 mb-2">
+              <div
+                className="w-3 h-3 rounded-full mt-1.5 shrink-0"
+                style={{ backgroundColor: getLanguageColor(repo.language) }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-sm break-all group-hover:underline text-highlight">
+                  {repo.fullName}
                 </div>
+                <span className="text-xs text-muted-foreground">
+                  {repo.language || "Unknown"} · {formatStars(repo.stars)} stars · Pushed {getTimeAgo(repo.pushedAt)}
+                </span>
+              </div>
+            </div>
 
-                <div className="flex items-center gap-5 shrink-0 text-xs text-muted-foreground group-hover:text-background/70">
-                  <span className="hidden md:inline w-16 text-right">
-                    {repo.language || "—"}
-                  </span>
-                  <span className="flex items-center gap-1 tabular-nums w-16 text-right">
-                    <Star className="w-3 h-3" />
-                    {formatStars(repo.stars)}
-                  </span>
-                  {repo.forks !== null ? (
-                    <span className="flex items-center gap-1 tabular-nums w-16 text-right">
-                      <GitFork className="w-3 h-3" />
-                      {repo.forks.toLocaleString()}
-                    </span>
-                  ) : (
-                    <span className="w-16" />
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
+            {repo.description && (
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2 ml-6">
+                {repo.description}
+              </p>
+            )}
+
+            <div className="flex items-center gap-4 text-xs text-muted-foreground mt-auto ml-6">
+              <span className="flex items-center gap-1">
+                <Star className="w-3 h-3" />
+                {formatStars(repo.stars)}
+              </span>
+              {repo.forks !== null && (
+                <span className="flex items-center gap-1">
+                  <GitFork className="w-3 h-3" />
+                  {repo.forks.toLocaleString()}
+                </span>
+              )}
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {repos.length === 0 && !isLoading && (
+        <div className="border-2 border-dashed border-foreground/50 p-8 text-center">
+          <p>No repositories match the selected filters.</p>
         </div>
-
-        {repos.length === 0 && !isLoading && (
-          <div className="border-2 border-dashed border-foreground/50 p-8 text-center">
-            <p>No repositories match the selected filters.</p>
-          </div>
-        )}
-      </section>
+      )}
 
       <div ref={loadMoreRef} className="py-8 flex justify-center">
         {isLoading && (
