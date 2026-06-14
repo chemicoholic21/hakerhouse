@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { ChevronDown, Loader2, Search } from "lucide-react"
+import { Star, ChevronDown, Loader2, Search, GitFork } from "lucide-react"
 import type { TrendingRepo, ReposResponse } from "@/app/api/github/repos/route"
 
 const LANGUAGE_COLORS: Record<string, string> = {
@@ -97,11 +97,17 @@ function formatStars(stars: number): string {
   return stars.toLocaleString()
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 80) return "text-green-600 dark:text-green-400"
-  if (score >= 60) return "text-yellow-600 dark:text-yellow-400"
-  if (score >= 40) return "text-orange-600 dark:text-orange-400"
-  return "text-red-600 dark:text-red-400"
+function getTimeAgo(dateStr: string | null): string {
+  if (!dateStr) return "unknown"
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return "today"
+  if (diffDays === 1) return "yesterday"
+  if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+  return `${Math.floor(diffDays / 30)} months ago`
 }
 
 const sortOptions = [
@@ -258,51 +264,46 @@ export function TrendingRepos({ initialRepos, initialTotal }: TrendingReposProps
         </form>
       </div>
 
-      <div className="border-2 border-foreground">
-        <div className="grid grid-cols-[2.5rem_1fr_6rem_5rem_5rem] gap-2 px-4 py-2 text-xs text-muted-foreground border-b-2 border-foreground font-bold uppercase tracking-wider">
-          <span>#</span>
-          <span>Repository</span>
-          <span className="text-right">Stars</span>
-          <span className="text-right">Issues</span>
-          <span className="text-right">Score</span>
-        </div>
-
-        {repos.map((repo, idx) => (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {repos.map((repo) => (
           <Link
             key={repo.fullName}
             href={`/repos/${repo.owner}/${repo.name}`}
-            className="grid grid-cols-[2.5rem_1fr_6rem_5rem_5rem] gap-2 px-4 py-3 items-center border-b border-foreground/10 last:border-b-0 hover:bg-foreground/[0.03] transition-colors group"
+            className="border-2 border-foreground p-4 flex flex-col group hover:bg-foreground/[0.03]"
           >
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {idx + 1}
-            </span>
-
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-start gap-3 mb-2">
               <div
-                className="w-2.5 h-2.5 rounded-full shrink-0"
+                className="w-3 h-3 rounded-full mt-1.5 shrink-0"
                 style={{ backgroundColor: getLanguageColor(repo.language) }}
               />
-              <div className="min-w-0">
-                <span className="text-sm font-bold text-highlight group-hover:underline break-all">
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-sm break-all group-hover:underline text-highlight">
                   {repo.fullName}
-                </span>
-                <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">
-                  {repo.language || "Unknown"}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {repo.language || "Unknown"} · {formatStars(repo.stars)} stars · Pushed {getTimeAgo(repo.pushedAt)}
                 </span>
               </div>
             </div>
 
-            <span className="text-sm text-right tabular-nums">
-              {formatStars(repo.stars)}
-            </span>
+            {repo.description && (
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2 ml-6">
+                {repo.description}
+              </p>
+            )}
 
-            <span className="text-sm text-right tabular-nums text-muted-foreground">
-              {repo.openIssuesCount ?? 0}
-            </span>
-
-            <span className={`text-sm text-right tabular-nums font-bold ${getScoreColor(repo.contributionScore)}`}>
-              {Math.round(repo.contributionScore)}
-            </span>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground mt-auto ml-6">
+              <span className="flex items-center gap-1">
+                <Star className="w-3 h-3" />
+                {formatStars(repo.stars)}
+              </span>
+              {repo.forks !== null && (
+                <span className="flex items-center gap-1">
+                  <GitFork className="w-3 h-3" />
+                  {repo.forks.toLocaleString()}
+                </span>
+              )}
+            </div>
           </Link>
         ))}
       </div>

@@ -20,35 +20,38 @@ async function getInitialRepos(): Promise<{ repos: TrendingRepo[]; total: number
 
   const rows = await sql`
     SELECT
-      full_name,
-      owner_login,
-      repo_name,
-      primary_language,
-      stars,
-      is_archived,
-      pushed_at,
-      last_release_at,
-      merged_pr_count,
-      median_merge_hours,
-      acceptance_rate,
-      merge_velocity_per_month,
-      open_issues_count,
-      good_first_issues,
-      help_wanted_issues,
-      has_contributing,
-      has_code_of_conduct,
-      mentionable_users,
-      contribution_score,
-      responsiveness_score,
-      throughput_score,
-      acceptance_score,
-      newcomer_score,
-      liveness_score,
-      confidence,
-      gated_reason
-    FROM repo_health
-    WHERE gated_reason IS NULL
-    ORDER BY contribution_score DESC NULLS LAST
+      rh.full_name,
+      rh.owner_login,
+      rh.repo_name,
+      rh.primary_language,
+      rh.stars,
+      gr.forks,
+      gr.description,
+      rh.is_archived,
+      rh.pushed_at,
+      rh.last_release_at,
+      rh.merged_pr_count,
+      rh.median_merge_hours,
+      rh.acceptance_rate,
+      rh.merge_velocity_per_month,
+      rh.open_issues_count,
+      rh.good_first_issues,
+      rh.help_wanted_issues,
+      rh.has_contributing,
+      rh.has_code_of_conduct,
+      rh.mentionable_users,
+      rh.contribution_score,
+      rh.responsiveness_score,
+      rh.throughput_score,
+      rh.acceptance_score,
+      rh.newcomer_score,
+      rh.liveness_score,
+      rh.confidence,
+      rh.gated_reason
+    FROM repo_health rh
+    LEFT JOIN github_repos gr ON gr.full_name = rh.full_name
+    WHERE rh.gated_reason IS NULL
+    ORDER BY rh.contribution_score DESC NULLS LAST
     LIMIT 30
   `
 
@@ -57,7 +60,9 @@ async function getInitialRepos(): Promise<{ repos: TrendingRepo[]; total: number
     fullName: row.full_name,
     owner: row.owner_login,
     stars: row.stars,
+    forks: row.forks,
     language: row.primary_language,
+    description: row.description,
     url: `https://github.com/${row.full_name}`,
     contributionScore: row.contribution_score,
     responsivenessScore: row.responsiveness_score,
