@@ -277,10 +277,10 @@ export function TrendingRepos({ initialRepos, initialTotal }: TrendingReposProps
               <Link
                 key={repo.fullName}
                 href={`/repos/${repo.owner}/${repo.name}`}
-                className="flex items-center gap-4 py-3 px-2 border-b border-foreground last:border-b-0 hover:bg-foreground hover:text-background group"
+                className="flex items-start gap-3 py-4 px-3 border-b border-foreground last:border-b-0 hover:bg-foreground hover:text-background group"
               >
                 <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
                   style={{ backgroundColor: getLanguageColor(repo.language) }}
                 />
 
@@ -289,27 +289,29 @@ export function TrendingRepos({ initialRepos, initialTotal }: TrendingReposProps
                     {repo.fullName}
                   </span>
                   {repo.description && (
-                    <span className="text-xs text-muted-foreground group-hover:text-background/70 ml-2 hidden sm:inline">
-                      — {repo.description.length > 80 ? repo.description.slice(0, 80) + "…" : repo.description}
-                    </span>
+                    <p className="text-xs text-muted-foreground group-hover:text-background/70 mt-1 leading-relaxed">
+                      {repo.description.length > 120 ? repo.description.slice(0, 120) + "…" : repo.description}
+                    </p>
                   )}
                 </div>
 
-                <span className="text-xs text-muted-foreground group-hover:text-background/70 shrink-0 hidden md:inline">
-                  {repo.language || "Unknown"}
-                </span>
-
-                <span className="text-xs text-muted-foreground group-hover:text-background/70 shrink-0 flex items-center gap-1 tabular-nums">
-                  <Star className="w-3 h-3" />
-                  {formatStars(repo.stars)}
-                </span>
-
-                {repo.forks !== null && (
-                  <span className="text-xs text-muted-foreground group-hover:text-background/70 shrink-0 flex items-center gap-1 tabular-nums">
-                    <GitFork className="w-3 h-3" />
-                    {repo.forks.toLocaleString()}
+                <div className="flex items-center gap-5 shrink-0 text-xs text-muted-foreground group-hover:text-background/70">
+                  <span className="hidden md:inline w-16 text-right">
+                    {repo.language || "—"}
                   </span>
-                )}
+                  <span className="flex items-center gap-1 tabular-nums w-16 text-right">
+                    <Star className="w-3 h-3" />
+                    {formatStars(repo.stars)}
+                  </span>
+                  {repo.forks !== null ? (
+                    <span className="flex items-center gap-1 tabular-nums w-16 text-right">
+                      <GitFork className="w-3 h-3" />
+                      {repo.forks.toLocaleString()}
+                    </span>
+                  ) : (
+                    <span className="w-16" />
+                  )}
+                </div>
               </Link>
             ))}
           </div>
