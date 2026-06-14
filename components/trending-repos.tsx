@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Star, ChevronDown, ExternalLink, Loader2, Search, GitPullRequest, Clock, CheckCircle, Users, Sprout, Zap } from "lucide-react"
+import Link from "next/link"
+import { ChevronDown, Loader2, Search } from "lucide-react"
 import type { TrendingRepo, ReposResponse } from "@/app/api/github/repos/route"
 
 const LANGUAGE_COLORS: Record<string, string> = {
@@ -96,36 +97,11 @@ function formatStars(stars: number): string {
   return stars.toLocaleString()
 }
 
-function getTimeAgo(dateStr: string | null): string {
-  if (!dateStr) return "unknown"
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 0) return "today"
-  if (diffDays === 1) return "yesterday"
-  if (diffDays < 7) return `${diffDays} days ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-  return `${Math.floor(diffDays / 30)} months ago`
-}
-
-function ScoreBar({ label, value, icon }: { label: string; value: number | null; icon: React.ReactNode }) {
-  if (value === null || value === undefined) return null
-  const pct = Math.round(value * 100)
-  return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <span className="text-muted-foreground w-3 shrink-0">{icon}</span>
-      <span className="text-muted-foreground w-24 shrink-0">{label}</span>
-      <div className="flex-1 h-1.5 bg-foreground/10 relative">
-        <div
-          className="h-full bg-foreground/60"
-          style={{ width: `${Math.min(pct, 100)}%` }}
-        />
-      </div>
-      <span className="w-8 text-right tabular-nums">{pct}</span>
-    </div>
-  )
+function getScoreColor(score: number): string {
+  if (score >= 80) return "text-green-600 dark:text-green-400"
+  if (score >= 60) return "text-yellow-600 dark:text-yellow-400"
+  if (score >= 40) return "text-orange-600 dark:text-orange-400"
+  return "text-red-600 dark:text-red-400"
 }
 
 const sortOptions = [
@@ -282,85 +258,52 @@ export function TrendingRepos({ initialRepos, initialTotal }: TrendingReposProps
         </form>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="border-2 border-foreground">
+        <div className="grid grid-cols-[2.5rem_1fr_6rem_5rem_5rem] gap-2 px-4 py-2 text-xs text-muted-foreground border-b-2 border-foreground font-bold uppercase tracking-wider">
+          <span>#</span>
+          <span>Repository</span>
+          <span className="text-right">Stars</span>
+          <span className="text-right">Issues</span>
+          <span className="text-right">Score</span>
+        </div>
+
         {repos.map((repo, idx) => (
-          <a
+          <Link
             key={repo.fullName}
-            href={repo.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="border-2 border-foreground p-4 cursor-pointer flex flex-col group hover:bg-foreground/[0.03]"
+            href={`/repos/${repo.owner}/${repo.name}`}
+            className="grid grid-cols-[2.5rem_1fr_6rem_5rem_5rem] gap-2 px-4 py-3 items-center border-b border-foreground/10 last:border-b-0 hover:bg-foreground/[0.03] transition-colors group"
           >
-            <div className="flex items-start gap-3 mb-3">
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {idx + 1}
+            </span>
+
+            <div className="flex items-center gap-2 min-w-0">
               <div
-                className="w-3 h-3 rounded-full mt-1.5 shrink-0"
+                className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: getLanguageColor(repo.language) }}
               />
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm break-all group-hover:underline text-highlight flex items-center gap-1">
+              <div className="min-w-0">
+                <span className="text-sm font-bold text-highlight group-hover:underline break-all">
                   {repo.fullName}
-                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100" />
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {repo.language || "Unknown"} · {formatStars(repo.stars)} stars · Pushed {getTimeAgo(repo.pushedAt)}
                 </span>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="text-lg font-bold tabular-nums text-highlight">
-                  {Math.round(repo.contributionScore)}
-                </div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">score</div>
+                <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">
+                  {repo.language || "Unknown"}
+                </span>
               </div>
             </div>
 
-            <div className="space-y-1 mb-3">
-              <ScoreBar label="Acceptance" value={repo.acceptanceScore} icon={<CheckCircle className="w-3 h-3" />} />
-              <ScoreBar label="Responsiveness" value={repo.responsivenessScore} icon={<Clock className="w-3 h-3" />} />
-              <ScoreBar label="Newcomer" value={repo.newcomerScore} icon={<Sprout className="w-3 h-3" />} />
-              <ScoreBar label="Liveness" value={repo.livenessScore} icon={<Zap className="w-3 h-3" />} />
-              <ScoreBar label="Throughput" value={repo.throughputScore} icon={<GitPullRequest className="w-3 h-3" />} />
-            </div>
+            <span className="text-sm text-right tabular-nums">
+              {formatStars(repo.stars)}
+            </span>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-auto">
-              {repo.mergedPrCount !== null && (
-                <span className="flex items-center gap-1">
-                  <GitPullRequest className="w-3 h-3" />
-                  {repo.mergedPrCount.toLocaleString()} merged
-                </span>
-              )}
-              {repo.medianMergeHours !== null && (
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {repo.medianMergeHours < 1
-                    ? `${Math.round(repo.medianMergeHours * 60)}m`
-                    : `${repo.medianMergeHours.toFixed(1)}h`} median
-                </span>
-              )}
-              {repo.mentionableUsers !== null && (
-                <span className="flex items-center gap-1">
-                  <Users className="w-3 h-3" />
-                  {repo.mentionableUsers.toLocaleString()} contributors
-                </span>
-              )}
-              {repo.goodFirstIssues !== null && repo.goodFirstIssues > 0 && (
-                <span className="flex items-center gap-1">
-                  <Sprout className="w-3 h-3" />
-                  {repo.goodFirstIssues} good first issues
-                </span>
-              )}
-              {repo.mergeVelocityPerMonth !== null && (
-                <span className="flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
-                  {repo.mergeVelocityPerMonth.toFixed(0)}/mo
-                </span>
-              )}
-              {repo.confidence !== null && repo.confidence < 1 && (
-                <span className="text-muted-foreground/50">
-                  conf: {Math.round(repo.confidence * 100)}%
-                </span>
-              )}
-            </div>
-          </a>
+            <span className="text-sm text-right tabular-nums text-muted-foreground">
+              {repo.openIssuesCount ?? 0}
+            </span>
+
+            <span className={`text-sm text-right tabular-nums font-bold ${getScoreColor(repo.contributionScore)}`}>
+              {Math.round(repo.contributionScore)}
+            </span>
+          </Link>
         ))}
       </div>
 
