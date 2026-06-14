@@ -269,7 +269,7 @@ export function TrendingRepos({ initialRepos, initialTotal }: TrendingReposProps
           <Link
             key={repo.fullName}
             href={`/repos/${repo.owner}/${repo.name}`}
-            className="border-2 border-foreground p-4 flex flex-col group hover:bg-foreground/[0.03]"
+            className="border-2 border-foreground px-4 py-5 flex flex-col group hover:bg-foreground/[0.03]"
           >
             <div className="flex items-start gap-3 mb-2">
               <div
