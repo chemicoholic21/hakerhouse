@@ -8,7 +8,9 @@ export interface TrendingRepo {
   fullName: string
   owner: string
   stars: number
+  forks: number | null
   language: string | null
+  description: string | null
   url: string
   contributionScore: number
   responsivenessScore: number | null
@@ -94,6 +96,8 @@ export async function GET(request: Request) {
         rh.repo_name,
         rh.primary_language,
         rh.stars,
+        gr.forks,
+        gr.description,
         rh.is_archived,
         rh.pushed_at,
         rh.last_release_at,
@@ -116,6 +120,7 @@ export async function GET(request: Request) {
         rh.confidence,
         rh.gated_reason
       FROM repo_health rh
+      LEFT JOIN github_repos gr ON gr.full_name = rh.full_name
       ${whereClause}
       ORDER BY ${orderBy} DESC NULLS LAST
       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
@@ -128,7 +133,9 @@ export async function GET(request: Request) {
       fullName: row.full_name,
       owner: row.owner_login,
       stars: row.stars,
+      forks: row.forks,
       language: row.primary_language,
+      description: row.description,
       url: `https://github.com/${row.full_name}`,
       contributionScore: row.contribution_score,
       responsivenessScore: row.responsiveness_score,
