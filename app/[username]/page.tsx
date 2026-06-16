@@ -91,9 +91,12 @@ export default async function UserProfilePage({
   // JSONB columns may be returned as already-parsed objects by Neon
   interface RepoData {
     full_name?: string
+    fullName?: string
     ownerLogin?: string
+    owner?: string
     name?: string
     userPRs?: number
+    prs?: number
     stars?: number
     language?: string
     score?: number
@@ -106,8 +109,23 @@ export default async function UserProfilePage({
         : dbData.top_repos_json
       if (Array.isArray(repos)) {
         contributions = repos.map((r: RepoData) => {
-          const repoName = r.full_name || (r.ownerLogin ? `${r.ownerLogin}/${r.name}` : r.name || '')
-          const prCount = r.userPRs || 0
+          // Resolve a full "owner/repo" slug from the many field-name variants
+          // that appear across data sources. Fall back to the profile's own
+          // username as the owner when only a bare repo name is available, so
+          // GitHub links always point at a real repository.
+          const ownerLogin = r.ownerLogin || r.owner
+          const fullName = r.full_name || r.fullName
+          let repoName = ""
+          if (fullName && fullName.includes("/")) {
+            repoName = fullName
+          } else if (ownerLogin && r.name) {
+            repoName = `${ownerLogin}/${r.name}`
+          } else if (r.name) {
+            repoName = `${username}/${r.name}`
+          } else if (fullName) {
+            repoName = fullName
+          }
+          const prCount = r.userPRs ?? r.prs ?? 0
           const stars = r.stars || 0
 
           return {
