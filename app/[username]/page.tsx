@@ -142,6 +142,45 @@ export default async function UserProfilePage({
     console.error("Failed to parse top repos", e)
   }
 
+  // Fallback: when the analysis row has no repo list (analyses.top_repos_json
+  // is empty/missing, as it is for many users whose analysis job never synced),
+  // build the contributions list from user_repo_scores instead — the same
+  // source family the total_score is derived from. github_repos is joined for
+  // fresh star counts and the primary language.
+  if (!contributions || contributions.length === 0) {
+    try {
+      const repoRows = await sql`
+        SELECT
+          urs.repo_name,
+          urs.user_prs,
+          COALESCE(gr.stars, urs.stars, 0) AS stars,
+          gr.primary_language,
+          urs.repo_score
+        FROM user_repo_scores urs
+        LEFT JOIN github_repos gr ON gr.full_name = urs.repo_name
+        WHERE urs.username = ${username}
+        ORDER BY urs.repo_score DESC NULLS LAST
+        LIMIT 20
+      `
+      if (repoRows.length > 0) {
+        contributions = repoRows.map((r) => {
+          const prCount = Number(r.user_prs) || 0
+          const stars = Number(r.stars) || 0
+          return {
+            kind: "commit",
+            // urs.repo_name is already an "owner/repo" slug.
+            repo: r.repo_name as string,
+            title: `${prCount} PR${prCount !== 1 ? "s" : ""} contributed · ${stars.toLocaleString()} stars`,
+            time: (r.primary_language as string) || "Recent",
+            score: r.repo_score != null ? Number(r.repo_score) : undefined,
+          }
+        })
+      }
+    } catch (e) {
+      console.error("Failed to load fallback repos from user_repo_scores", e)
+    }
+  }
+
   const dev = {
     name: dbData.name || dbData.username,
     username: dbData.username,
