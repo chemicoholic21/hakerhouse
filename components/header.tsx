@@ -67,6 +67,7 @@ export function Header() {
             <Link href="/repos" className="hover:underline underline-offset-4">Repos</Link>
             <Link href="/devs" className="hover:underline underline-offset-4">Devs</Link>
             <Link href="/roles" className="hover:underline underline-offset-4">Roles</Link>
+            <Link href="/analytics" className="hover:underline underline-offset-4">Analytics</Link>
           </nav>
         </div>
         
