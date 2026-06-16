@@ -3,7 +3,6 @@ import type { LucideIcon } from "lucide-react"
 import { Eye, Github, GitCommit, GitPullRequest, MapPin, MessageSquare, User } from "lucide-react"
 import type { Developer } from "@/lib/data"
 import type { ContributionKind } from "@/lib/profile-prototype"
-import { prototypeContributions } from "@/lib/profile-prototype"
 import { ProfileMessageSidebar } from "@/components/profile-message-button"
 
 const contributionIcon: Record<ContributionKind, LucideIcon> = {
@@ -57,9 +56,9 @@ export function UserProfileView({
   bio, 
   weeklyRank, 
   weeklyScore, 
-  skillsStrong = [], 
+  skillsStrong = [],
   skillsAlso = [],
-  contributions = [...prototypeContributions],
+  contributions = [],
   scores
 }: UserProfileViewProps) {
   return (
@@ -213,6 +212,20 @@ export function UserProfileView({
               Contributions
             </h2>
             <div className="divide-y divide-foreground">
+              {contributions.length === 0 && (
+                <p className="px-4 sm:px-5 py-8 text-sm text-muted-foreground">
+                  No public contribution data available for{" "}
+                  <a
+                    href={`https://github.com/${dev.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-highlight hover:underline underline-offset-4"
+                  >
+                    {dev.username}
+                  </a>{" "}
+                  yet.
+                </p>
+              )}
               {contributions.map((c, i) => {
                 const kind = c.kind as ContributionKind
                 const Icon = contributionIcon[kind] || GitCommit
