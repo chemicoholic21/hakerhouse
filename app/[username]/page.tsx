@@ -65,6 +65,43 @@ export default async function UserProfilePage({
     console.error("Failed to parse skills", e)
   }
 
+  // Fallback: when unique_skills is empty (the analysis job never synced this
+  // user), derive skill tags from the repo metadata that does exist — the
+  // primary language and GitHub topics of the user's scored repos, joined via
+  // user_repo_scores. unique_skills is itself just a list of lowercased
+  // repo topics/languages, so this mirrors how it would have been populated.
+  if (skills.length === 0) {
+    try {
+      const tagRows = await sql`
+        SELECT gr.primary_language, gr.topics
+        FROM user_repo_scores urs
+        JOIN github_repos gr ON gr.full_name = urs.repo_name
+        WHERE urs.username = ${username}
+        ORDER BY urs.repo_score DESC NULLS LAST
+        LIMIT 30
+      `
+      const seen = new Set<string>()
+      const derived: string[] = []
+      const add = (raw: unknown) => {
+        if (typeof raw !== "string") return
+        const tag = raw.toLowerCase().trim()
+        if (tag && !seen.has(tag)) {
+          seen.add(tag)
+          derived.push(tag)
+        }
+      }
+      // Primary languages first (stronger signal -> shown under "Strong in"),
+      // then repo topics.
+      for (const row of tagRows) add(row.primary_language)
+      for (const row of tagRows) {
+        if (Array.isArray(row.topics)) row.topics.forEach(add)
+      }
+      skills = derived.slice(0, 12)
+    } catch (e) {
+      console.error("Failed to derive fallback skills from github_repos", e)
+    }
+  }
+
   // Split skills into strong and also
   const skillsStrong = skills.slice(0, 3)
   const skillsAlso = skills.slice(3)
