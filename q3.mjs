@@ -1,5 +1,11 @@
 import { neon } from '@neondatabase/serverless'
-const sql = neon('postgresql://burhan:Burh%40nR3%40d%24@ep-aged-mouse-ai1o5rd0-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require')
+
+const DATABASE_URL = process.env.DATABASE_URL
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL environment variable is not set')
+  process.exit(1)
+}
+const sql = neon(DATABASE_URL)
 
 function resolve(r, username) {
   const ownerLogin = r.ownerLogin || r.owner
