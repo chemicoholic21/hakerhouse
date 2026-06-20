@@ -1,6 +1,6 @@
 # hackerhou.se
 
-A platform that connects developers by analyzing actual GitHub activity to build profiles and match talent with open-source opportunities.
+A platform that unites developers by analyzing actual GitHub activity to build profiles and match talent with open-source opportunities.
 
 ## Setup
 
