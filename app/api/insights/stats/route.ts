@@ -5,6 +5,7 @@ import {
   checkApiRateLimit,
   rateLimitExceededResponse,
 } from '@/lib/rate-limit';
+import { serverError } from '@/lib/api';
 
 export async function GET(request?: Request) {
   // Rate limiting - only apply for external requests (when request object is provided)
@@ -62,8 +63,6 @@ export async function GET(request?: Request) {
 
     return NextResponse.json({ distribution, impactDistribution, skillsRadar, impactTrend });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Insights stats fetch error:', errorMessage);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return serverError('fetch insights stats', error);
   }
 }

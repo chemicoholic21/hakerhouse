@@ -1,7 +1,32 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { z } from 'zod';
+import { serverError } from '@/lib/api';
 
 const sql = neon(process.env.DATABASE_URL!);
+
+const SORT_COLUMNS = {
+  contribution_score: 'rh.contribution_score',
+  stars: 'rh.stars',
+  responsiveness: 'rh.responsiveness_score',
+  throughput: 'rh.throughput_score',
+  acceptance: 'rh.acceptance_score',
+  newcomer: 'rh.newcomer_score',
+  liveness: 'rh.liveness_score',
+  merge_velocity: 'rh.merge_velocity_per_month',
+} as const;
+
+// Validate and clamp query params. Invalid values fall back to safe defaults
+// (via .catch) rather than being rejected, so the listing stays resilient.
+const reposQuerySchema = z.object({
+  offset: z.coerce.number().int().min(0).catch(0),
+  limit: z.coerce.number().int().min(1).max(100).catch(30),
+  sort: z
+    .enum(Object.keys(SORT_COLUMNS) as [keyof typeof SORT_COLUMNS])
+    .catch('contribution_score'),
+  language: z.string().max(100).nullish().catch(null),
+  search: z.string().max(200).nullish().catch(null),
+});
 
 export interface TrendingRepo {
   name: string;
@@ -44,23 +69,15 @@ export interface ReposResponse {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
-    const limit = parseInt(searchParams.get('limit') || '30', 10);
-    const language = searchParams.get('language') || null;
-    const sort = searchParams.get('sort') || 'contribution_score';
-    const search = searchParams.get('search') || null;
+    const { offset, limit, sort, language, search } = reposQuerySchema.parse({
+      offset: searchParams.get('offset') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      sort: searchParams.get('sort') ?? undefined,
+      language: searchParams.get('language'),
+      search: searchParams.get('search'),
+    });
 
-    const allowedSorts: Record<string, string> = {
-      contribution_score: 'rh.contribution_score',
-      stars: 'rh.stars',
-      responsiveness: 'rh.responsiveness_score',
-      throughput: 'rh.throughput_score',
-      acceptance: 'rh.acceptance_score',
-      newcomer: 'rh.newcomer_score',
-      liveness: 'rh.liveness_score',
-      merge_velocity: 'rh.merge_velocity_per_month',
-    };
-    const orderBy = allowedSorts[sort] || 'rh.contribution_score';
+    const orderBy = SORT_COLUMNS[sort];
 
     const conditions: string[] = ['rh.gated_reason IS NULL'];
     const params: (string | number)[] = [];
@@ -164,11 +181,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ repos, hasMore, total });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Trending repos fetch error:', errorMessage);
-    return NextResponse.json(
-      { error: 'Failed to fetch trending repos', details: errorMessage },
-      { status: 500 }
-    );
+    return serverError('fetch trending repos', error);
   }
 }

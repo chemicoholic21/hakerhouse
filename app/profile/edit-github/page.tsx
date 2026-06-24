@@ -214,10 +214,10 @@ export default function EditGithubProfilePage() {
           ),
         });
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         toast({
           title: 'Error',
-          description: errorData.message || 'Failed to update GitHub Profile README.',
+          description: errorData.error || 'Failed to update GitHub Profile README.',
           variant: 'destructive',
         });
       }

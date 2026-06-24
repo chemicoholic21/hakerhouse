@@ -6,6 +6,7 @@ import {
   checkApiRateLimit,
   rateLimitExceededResponse,
 } from '@/lib/rate-limit';
+import { serverError } from '@/lib/api';
 
 interface MapDataRow {
   region: string;
@@ -76,11 +77,6 @@ export async function GET(request?: Request) {
 
     return NextResponse.json(result);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Map data fetch error:', errorMessage);
-    return NextResponse.json(
-      { error: 'Failed to fetch map data', details: errorMessage },
-      { status: 500 }
-    );
+    return serverError('fetch map data', error);
   }
 }

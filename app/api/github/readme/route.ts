@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { auth } from '@/auth';
 import { Octokit } from '@octokit/rest';
 import {
@@ -6,6 +7,25 @@ import {
   checkWriteRateLimit,
   rateLimitExceededResponse,
 } from '@/lib/rate-limit';
+import { apiError, serverError } from '@/lib/api';
+
+// GitHub rejects files larger than ~1 MB via the contents API; cap the README
+// payload well within that so we fail fast with a clear message.
+const MAX_README_BYTES = 900_000;
+
+const updateReadmeSchema = z.object({
+  readmeContent: z
+    .string()
+    .min(1, 'README content is required')
+    .max(MAX_README_BYTES, 'README content is too large'),
+  // Optional GitHub Personal Access Token. Empty string is treated as "absent".
+  pat: z
+    .string()
+    .trim()
+    .max(255)
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+});
 
 /**
  * Validate that a PAT belongs to the authenticated user
@@ -51,18 +71,25 @@ export async function POST(req: Request) {
   const session = await auth();
 
   if (!session || !session.accessToken || !session.user?.githubUsername) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', 401);
   }
 
   const { accessToken } = session;
   const githubUsername = session.user.githubUsername;
 
   try {
-    const { readmeContent, pat } = await req.json();
-
-    if (!readmeContent) {
-      return NextResponse.json({ message: 'README content is required' }, { status: 400 });
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return apiError('Invalid JSON body', 400);
     }
+
+    const parsed = updateReadmeSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiError(parsed.error.issues[0]?.message ?? 'Invalid request', 400);
+    }
+    const { readmeContent, pat } = parsed.data;
 
     // Determine which token to use
     let authToUse = accessToken;
@@ -71,7 +98,7 @@ export async function POST(req: Request) {
     if (pat) {
       const validation = await validatePatOwnership(pat, githubUsername);
       if (!validation.valid) {
-        return NextResponse.json({ message: validation.error }, { status: 403 });
+        return apiError(validation.error ?? 'Invalid PAT', 403);
       }
       authToUse = pat;
     }
@@ -101,8 +128,7 @@ export async function POST(req: Request) {
       const isNotFound =
         error && typeof error === 'object' && 'status' in error && error.status === 404;
       if (!isNotFound) {
-        console.error('Error getting README.md:', error);
-        return NextResponse.json({ message: 'Error accessing repository' }, { status: 500 });
+        return serverError('getContent README.md', error);
       }
     }
 
@@ -129,11 +155,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: 'README updated successfully' }, { status: 200 });
   } catch (error: unknown) {
-    console.error('Error updating README:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { message: 'Error updating README', error: errorMessage },
-      { status: 500 }
-    );
+    return serverError('update README', error);
   }
 }
