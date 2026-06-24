@@ -9,6 +9,19 @@ export interface PrototypeContribution {
   time: string
 }
 
+/**
+ * A contribution row as rendered on a real profile. Built from live data
+ * (top_repos_json / user_repo_scores), so `kind` is a loose string and an
+ * optional `score` (impact) may be present.
+ */
+export interface ProfileContribution {
+  kind: string
+  repo: string
+  title: string
+  time: string
+  score?: number
+}
+
 export const prototypeContributions: readonly PrototypeContribution[] = [
   {
     kind: "pr",

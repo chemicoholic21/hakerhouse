@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 const developers = [
   {
     username: "nerdy_dev",
@@ -71,7 +73,7 @@ export function FindDevelopers() {
       </div>
       
       <div className="mt-4 text-right">
-        <a href="/developers" className="text-sm hover:underline">See more developers &gt;</a>
+        <Link href="/devs" className="text-sm hover:underline">See more developers &gt;</Link>
       </div>
     </section>
   )

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Header } from "@/components/header"
 import { UserProfileView } from "@/components/user-profile-view"
+import type { ProfileContribution } from "@/lib/profile-prototype"
 import { sql } from "@/lib/db"
 import { buildPageMetadata } from "@/lib/seo"
 
@@ -138,7 +139,7 @@ export default async function UserProfilePage({
     language?: string
     score?: number
   }
-  let contributions: { kind: string; repo: string; title: string; time: string; score?: number }[] | undefined = undefined
+  let contributions: ProfileContribution[] | undefined = undefined
   try {
     if (dbData.top_repos_json) {
       const repos = typeof dbData.top_repos_json === 'string'

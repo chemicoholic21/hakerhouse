@@ -1,8 +1,9 @@
+import type { ElementType } from "react"
 import Link from "next/link"
 import type { LucideIcon } from "lucide-react"
 import { Eye, Github, GitCommit, GitPullRequest, MapPin, MessageSquare, User } from "lucide-react"
 import type { Developer } from "@/lib/data"
-import type { ContributionKind } from "@/lib/profile-prototype"
+import type { ContributionKind, ProfileContribution } from "@/lib/profile-prototype"
 import { ProfileMessageSidebar } from "@/components/profile-message-button"
 
 const contributionIcon: Record<ContributionKind, LucideIcon> = {
@@ -40,7 +41,7 @@ interface UserProfileViewProps {
   weeklyScore?: number
   skillsStrong?: string[]
   skillsAlso?: string[]
-  contributions?: any[]
+  contributions?: ProfileContribution[]
   scores?: {
     backend?: number
     frontend?: number
@@ -238,7 +239,7 @@ export function UserProfileView({
                       rel: "noopener noreferrer",
                     }
                   : {}
-                const Wrapper: any = hasValidRepo ? Link : "div"
+                const Wrapper: ElementType = hasValidRepo ? Link : "div"
                 return (
                   <Wrapper
                     key={`${c.repo}-${c.title || i}-${i}`}

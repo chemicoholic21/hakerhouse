@@ -27,8 +27,12 @@ async function validatePatOwnership(
     }
 
     return { valid: true }
-  } catch (error: any) {
-    if (error.status === 401) {
+  } catch (error: unknown) {
+    const status =
+      error && typeof error === "object" && "status" in error
+        ? (error as { status?: number }).status
+        : undefined
+    if (status === 401) {
       return { valid: false, error: "Invalid or expired PAT" }
     }
     return { valid: false, error: "Failed to validate PAT" }

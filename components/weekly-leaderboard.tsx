@@ -13,15 +13,21 @@ function formatScore(n: number) {
   })
 }
 
-export async function WeeklyLeaderboard() {
-  const dbData = await sql`
-    SELECT username, name, total_score 
-    FROM leaderboard 
-    ORDER BY total_score DESC 
-    LIMIT 5
-  `
+interface LeaderboardRow {
+  username: string
+  name: string | null
+  total_score: number | null
+}
 
-  const leaderboardData = dbData.map((row: any, i: number) => ({
+export async function WeeklyLeaderboard() {
+  const dbData = (await sql`
+    SELECT username, name, total_score
+    FROM leaderboard
+    ORDER BY total_score DESC
+    LIMIT 5
+  `) as LeaderboardRow[]
+
+  const leaderboardData = dbData.map((row: LeaderboardRow, i: number) => ({
     rank: i + 1,
     name: row.name || row.username,
     handle: row.username,
