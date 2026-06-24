@@ -12,6 +12,9 @@ import { Toaster } from "@/components/ui/toaster"
 import { CheckIcon, Loader2, Github, Twitter, Linkedin, Globe, Mail } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
 
 export default function EditGithubProfilePage() {
   const { data: session, status } = useSession()
@@ -55,6 +58,7 @@ export default function EditGithubProfilePage() {
   const [pat, setPat] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [previewMode, setPreviewMode] = useState<"rendered" | "markdown">("rendered")
 
   useEffect(() => {
     if (session?.user?.name && !basics.name) {
@@ -357,12 +361,59 @@ export default function EditGithubProfilePage() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-bold">Markdown Preview</h2>
-          <div className="p-4 bg-muted rounded-md border border-dashed border-foreground/30 overflow-auto max-h-[600px]">
-            <pre className="whitespace-pre-wrap text-xs font-mono">
-              {generateReadmeContent()}
-            </pre>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Preview</h2>
+            <div className="inline-flex rounded-md border p-0.5 bg-muted">
+              <button
+                type="button"
+                onClick={() => setPreviewMode("rendered")}
+                className={`px-3 py-1 text-sm rounded-sm transition-colors ${
+                  previewMode === "rendered"
+                    ? "bg-background shadow-sm font-medium"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewMode("markdown")}
+                className={`px-3 py-1 text-sm rounded-sm transition-colors ${
+                  previewMode === "markdown"
+                    ? "bg-background shadow-sm font-medium"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Markdown
+              </button>
+            </div>
           </div>
+
+          {previewMode === "markdown" ? (
+            <div className="p-4 bg-muted rounded-md border border-dashed border-foreground/30 overflow-auto max-h-[600px]">
+              <pre className="whitespace-pre-wrap text-xs font-mono">
+                {generateReadmeContent()}
+              </pre>
+            </div>
+          ) : (
+            <div className="rounded-md border overflow-hidden bg-white">
+              <div className="flex items-center gap-2 border-b bg-[#f6f8fa] px-4 py-2 text-sm text-[#57606a]">
+                <Github className="w-4 h-4" />
+                <span className="font-mono">
+                  {githubUsername}/{githubUsername}
+                </span>
+                <span className="ml-auto font-mono text-xs">README.md</span>
+              </div>
+              <div className="github-readme-preview overflow-auto max-h-[560px] px-6 py-5">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                >
+                  {generateReadmeContent()}
+                </ReactMarkdown>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
