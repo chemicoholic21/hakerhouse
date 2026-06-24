@@ -1,23 +1,23 @@
-import { Hash } from "lucide-react"
-import Link from "next/link"
+import { Hash } from 'lucide-react';
+import Link from 'next/link';
 
 const trendingTags = [
-  "javascript",
-  "typescript",
-  "rust",
-  "golang",
-  "python",
-  "react",
-  "nextjs",
-  "ai",
-  "machine-learning",
-  "cli-tools",
-  "devtools",
-  "open-source",
-  "web3",
-  "security",
-  "databases",
-]
+  'javascript',
+  'typescript',
+  'rust',
+  'golang',
+  'python',
+  'react',
+  'nextjs',
+  'ai',
+  'machine-learning',
+  'cli-tools',
+  'devtools',
+  'open-source',
+  'web3',
+  'security',
+  'databases',
+];
 
 export function ExploreProjects() {
   return (
@@ -45,5 +45,5 @@ export function ExploreProjects() {
         </Link>
       </div>
     </section>
-  )
+  );
 }

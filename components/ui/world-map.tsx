@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useRef } from "react";
-import DottedMap from "dotted-map";
+import { useRef } from 'react';
+import DottedMap from 'dotted-map';
 
-import { useTheme } from "next-themes";
+import { useTheme } from 'next-themes';
 
 interface MapProps {
   points?: Array<{ lat: number; lng: number; label?: string; size?: number }>;
@@ -14,22 +14,22 @@ interface MapProps {
 
 export default function WorldMap({
   points = [],
-  lineColor = "#0ea5e9",
+  lineColor = '#0ea5e9',
   onPointHover,
   onPointLeave,
 }: MapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  
+
   // Use DottedMap class as getMap is not available in this version
-  const map = new DottedMap({ height: 100, grid: "diagonal" });
+  const map = new DottedMap({ height: 100, grid: 'diagonal' });
 
   // Force the map to cover the full world by adding corner pins at absolute boundaries
   // This ensures the equirectangular projection aligns correctly
-  map.addPin({ lat: -90, lng: -180, svgOptions: { color: "transparent", radius: 0 } });
-  map.addPin({ lat: 90, lng: 180, svgOptions: { color: "transparent", radius: 0 } });
+  map.addPin({ lat: -90, lng: -180, svgOptions: { color: 'transparent', radius: 0 } });
+  map.addPin({ lat: 90, lng: 180, svgOptions: { color: 'transparent', radius: 0 } });
 
   // Add our points to the dotted map so they are part of the background dots
-  points.forEach(point => {
+  points.forEach((point) => {
     map.addPin({ lat: point.lat, lng: point.lng, svgOptions: { color: lineColor, radius: 0.5 } });
   });
 
@@ -37,9 +37,9 @@ export default function WorldMap({
 
   const svgMap = map.getSVG({
     radius: 0.3,
-    color: "#2a2a2a", // Dark gray dots for the map
-    shape: "circle",
-    backgroundColor: "transparent",
+    color: '#2a2a2a', // Dark gray dots for the map
+    shape: 'circle',
+    backgroundColor: 'transparent',
   });
 
   const projectPoint = (lat: number, lng: number) => {
@@ -64,47 +64,41 @@ export default function WorldMap({
       >
         {/* Single points mapping */}
         {points.map((point, i) => {
-           const p = projectPoint(point.lat, point.lng);
-           return (
-             <g 
-                key={`single-point-${i}`}
-                onMouseEnter={() => onPointHover?.(point)}
-                onMouseLeave={() => onPointLeave?.()}
-                style={{ cursor: "crosshair" }}
-              >
-               <circle
-                 cx={p.x}
-                 cy={p.y}
-                 r={point.size || 4}
-                 fill={lineColor}
-                 className="opacity-70"
-               />
-               <circle
-                 cx={p.x}
-                 cy={p.y}
-                 r={point.size || 4}
-                 fill={lineColor}
-                 opacity="0.3"
-               >
-                 <animate
-                   attributeName="r"
-                   from={point.size || 4}
-                   to={(point.size || 4) * 3}
-                   dur="2s"
-                   begin="0s"
-                   repeatCount="indefinite"
-                 />
-                 <animate
-                   attributeName="opacity"
-                   from="0.3"
-                   to="0"
-                   dur="2s"
-                   begin="0s"
-                   repeatCount="indefinite"
-                 />
-               </circle>
-             </g>
-           );
+          const p = projectPoint(point.lat, point.lng);
+          return (
+            <g
+              key={`single-point-${i}`}
+              onMouseEnter={() => onPointHover?.(point)}
+              onMouseLeave={() => onPointLeave?.()}
+              style={{ cursor: 'crosshair' }}
+            >
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={point.size || 4}
+                fill={lineColor}
+                className="opacity-70"
+              />
+              <circle cx={p.x} cy={p.y} r={point.size || 4} fill={lineColor} opacity="0.3">
+                <animate
+                  attributeName="r"
+                  from={point.size || 4}
+                  to={(point.size || 4) * 3}
+                  dur="2s"
+                  begin="0s"
+                  repeatCount="indefinite"
+                />
+                <animate
+                  attributeName="opacity"
+                  from="0.3"
+                  to="0"
+                  dur="2s"
+                  begin="0s"
+                  repeatCount="indefinite"
+                />
+              </circle>
+            </g>
+          );
         })}
       </svg>
     </div>

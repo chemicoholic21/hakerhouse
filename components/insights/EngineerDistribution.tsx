@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
 interface EngineerDistributionProps {
   data?: {
@@ -29,10 +29,10 @@ function normalizeToPercent(score: number | undefined, fallback: number): number
 
 export function EngineerDistribution({ data }: EngineerDistributionProps) {
   const categories = [
-    { name: "Frontend", fillPercent: normalizeToPercent(data?.frontend, 85) },
-    { name: "Backend", fillPercent: normalizeToPercent(data?.backend, 70) },
-    { name: "AI", fillPercent: normalizeToPercent(data?.ai, 40) },
-    { name: "DevOps", fillPercent: normalizeToPercent(data?.devops, 55) },
+    { name: 'Frontend', fillPercent: normalizeToPercent(data?.frontend, 85) },
+    { name: 'Backend', fillPercent: normalizeToPercent(data?.backend, 70) },
+    { name: 'AI', fillPercent: normalizeToPercent(data?.ai, 40) },
+    { name: 'DevOps', fillPercent: normalizeToPercent(data?.devops, 55) },
   ];
 
   const columns = 12;
@@ -58,7 +58,7 @@ export function EngineerDistribution({ data }: EngineerDistributionProps) {
                   <div
                     key={i}
                     className={`w-2 h-3 sm:w-2.5 sm:h-4 border border-[#333] ${
-                      i < filledBlocks ? "bg-[#4a4a4a] border-[#6b7280]" : "bg-[#0a0a0a]"
+                      i < filledBlocks ? 'bg-[#4a4a4a] border-[#6b7280]' : 'bg-[#0a0a0a]'
                     }`}
                   />
                 ))}
@@ -78,4 +78,3 @@ export function EngineerDistribution({ data }: EngineerDistributionProps) {
     </div>
   );
 }
-

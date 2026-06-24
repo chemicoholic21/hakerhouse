@@ -17,13 +17,13 @@
  * );
  */
 export interface Skill {
-  slug: string
-  displayName: string
-  category: string
-  matchLanguages: string[]
-  matchTopics: string[]
-  matchKeywords: string[]
-  createdAt: Date
+  slug: string;
+  displayName: string;
+  category: string;
+  matchLanguages: string[];
+  matchTopics: string[];
+  matchKeywords: string[];
+  createdAt: Date;
 }
 
 /**
@@ -44,37 +44,37 @@ export interface Skill {
  * CREATE INDEX idx_uss_username ON user_skill_scores(username);
  */
 export interface UserSkillScore {
-  username: string
-  skillSlug: string
-  score: number
-  repoCount: number
-  topReposJson: TopRepoEntry[] | null
-  computedAt: Date
+  username: string;
+  skillSlug: string;
+  score: number;
+  repoCount: number;
+  topReposJson: TopRepoEntry[] | null;
+  computedAt: Date;
 }
 
 /**
  * Structure of entries in top_repos_json
  */
 export interface TopRepoEntry {
-  fullName: string
-  ownerLogin: string
-  name: string
-  userPRs: number
-  stars: number
-  language: string | null
-  topics: string[]
-  score: number
+  fullName: string;
+  ownerLogin: string;
+  name: string;
+  userPRs: number;
+  stars: number;
+  language: string | null;
+  topics: string[];
+  score: number;
 }
 
 /**
  * Skill categories for organization
  */
 export type SkillCategory =
-  | 'language'      // Programming languages (TypeScript, Python, Go, etc.)
-  | 'framework'     // Frameworks (React, Next.js, Django, etc.)
-  | 'platform'      // Platforms (AWS, Docker, Kubernetes, etc.)
-  | 'domain'        // Domains (blockchain, ai, security, etc.)
-  | 'tool'          // Tools (Git, CI/CD, etc.)
+  | 'language' // Programming languages (TypeScript, Python, Go, etc.)
+  | 'framework' // Frameworks (React, Next.js, Django, etc.)
+  | 'platform' // Platforms (AWS, Docker, Kubernetes, etc.)
+  | 'domain' // Domains (blockchain, ai, security, etc.)
+  | 'tool'; // Tools (Git, CI/CD, etc.)
 
 /**
  * Initial seed data for skills table
@@ -761,7 +761,17 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'AWS',
     category: 'platform',
     matchLanguages: [],
-    matchTopics: ['aws', 'amazon-web-services', 'lambda', 's3', 'ec2', 'dynamodb', 'cloudformation', 'cdk', 'sagemaker'],
+    matchTopics: [
+      'aws',
+      'amazon-web-services',
+      'lambda',
+      's3',
+      'ec2',
+      'dynamodb',
+      'cloudformation',
+      'cdk',
+      'sagemaker',
+    ],
     matchKeywords: ['aws', 'amazon', 'lambda', 'cloudformation', 'sagemaker'],
   },
   {
@@ -917,7 +927,17 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'DeFi',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['defi', 'decentralized-finance', 'dex', 'amm', 'yield-farming', 'liquidity', 'uniswap', 'aave', 'compound'],
+    matchTopics: [
+      'defi',
+      'decentralized-finance',
+      'dex',
+      'amm',
+      'yield-farming',
+      'liquidity',
+      'uniswap',
+      'aave',
+      'compound',
+    ],
     matchKeywords: ['defi', 'dex', 'amm', 'swap'],
   },
   {
@@ -1005,7 +1025,16 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'Zero Knowledge',
     category: 'domain',
     matchLanguages: ['Circom', 'Cairo'],
-    matchTopics: ['zero-knowledge', 'zk', 'zkp', 'zk-snark', 'zk-stark', 'zkrollup', 'circom', 'noir'],
+    matchTopics: [
+      'zero-knowledge',
+      'zk',
+      'zkp',
+      'zk-snark',
+      'zk-stark',
+      'zkrollup',
+      'circom',
+      'noir',
+    ],
     matchKeywords: ['zero-knowledge', 'zk-snark', 'zk-stark', 'zkrollup'],
   },
   {
@@ -1013,7 +1042,13 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'DAO',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['dao', 'decentralized-autonomous-organization', 'governance', 'aragon', 'snapshot'],
+    matchTopics: [
+      'dao',
+      'decentralized-autonomous-organization',
+      'governance',
+      'aragon',
+      'snapshot',
+    ],
     matchKeywords: ['dao', 'governance'],
   },
 
@@ -1033,7 +1068,17 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'LLM',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['llm', 'large-language-model', 'gpt', 'chatgpt', 'openai', 'claude', 'llama', 'mistral', 'gemini'],
+    matchTopics: [
+      'llm',
+      'large-language-model',
+      'gpt',
+      'chatgpt',
+      'openai',
+      'claude',
+      'llama',
+      'mistral',
+      'gemini',
+    ],
     matchKeywords: ['llm', 'gpt', 'chatgpt', 'openai', 'langchain', 'llama'],
   },
   {
@@ -1041,7 +1086,15 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'AI Agents',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['ai-agents', 'autonomous-agents', 'agent', 'autogpt', 'langchain', 'crewai', 'autogen'],
+    matchTopics: [
+      'ai-agents',
+      'autonomous-agents',
+      'agent',
+      'autogpt',
+      'langchain',
+      'crewai',
+      'autogen',
+    ],
     matchKeywords: ['ai-agent', 'autonomous-agent', 'autogpt', 'crewai'],
   },
   {
@@ -1049,7 +1102,14 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'NLP',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['nlp', 'natural-language-processing', 'text-mining', 'sentiment-analysis', 'ner', 'transformers'],
+    matchTopics: [
+      'nlp',
+      'natural-language-processing',
+      'text-mining',
+      'sentiment-analysis',
+      'ner',
+      'transformers',
+    ],
     matchKeywords: ['nlp', 'natural-language'],
   },
   {
@@ -1057,7 +1117,15 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'Computer Vision',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['computer-vision', 'cv', 'image-processing', 'object-detection', 'image-classification', 'yolo', 'opencv'],
+    matchTopics: [
+      'computer-vision',
+      'cv',
+      'image-processing',
+      'object-detection',
+      'image-classification',
+      'yolo',
+      'opencv',
+    ],
     matchKeywords: ['computer-vision', 'opencv', 'yolo'],
   },
   {
@@ -1065,7 +1133,15 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'Generative AI',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['generative-ai', 'stable-diffusion', 'midjourney', 'dalle', 'diffusion', 'text-to-image', 'image-generation'],
+    matchTopics: [
+      'generative-ai',
+      'stable-diffusion',
+      'midjourney',
+      'dalle',
+      'diffusion',
+      'text-to-image',
+      'image-generation',
+    ],
     matchKeywords: ['generative-ai', 'stable-diffusion', 'diffusion'],
   },
   {
@@ -1073,7 +1149,13 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'RAG',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['rag', 'retrieval-augmented-generation', 'vector-database', 'embeddings', 'semantic-search'],
+    matchTopics: [
+      'rag',
+      'retrieval-augmented-generation',
+      'vector-database',
+      'embeddings',
+      'semantic-search',
+    ],
     matchKeywords: ['rag', 'retrieval-augmented', 'embeddings'],
   },
   {
@@ -1205,7 +1287,15 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'Analytics',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['analytics', 'business-intelligence', 'bi', 'data-visualization', 'tableau', 'looker', 'metabase'],
+    matchTopics: [
+      'analytics',
+      'business-intelligence',
+      'bi',
+      'data-visualization',
+      'tableau',
+      'looker',
+      'metabase',
+    ],
     matchKeywords: ['analytics', 'business-intelligence'],
   },
   {
@@ -1213,7 +1303,15 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'Data Streaming',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['kafka', 'apache-kafka', 'streaming', 'stream-processing', 'flink', 'spark-streaming', 'pulsar'],
+    matchTopics: [
+      'kafka',
+      'apache-kafka',
+      'streaming',
+      'stream-processing',
+      'flink',
+      'spark-streaming',
+      'pulsar',
+    ],
     matchKeywords: ['kafka', 'streaming', 'flink'],
   },
 
@@ -1321,7 +1419,15 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'IoT',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['iot', 'internet-of-things', 'mqtt', 'esp32', 'arduino', 'raspberry-pi', 'home-automation'],
+    matchTopics: [
+      'iot',
+      'internet-of-things',
+      'mqtt',
+      'esp32',
+      'arduino',
+      'raspberry-pi',
+      'home-automation',
+    ],
     matchKeywords: ['iot', 'internet-of-things', 'mqtt'],
   },
   {
@@ -1337,7 +1443,16 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'AR/VR',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['ar', 'vr', 'augmented-reality', 'virtual-reality', 'xr', 'mixed-reality', 'metaverse', 'webxr'],
+    matchTopics: [
+      'ar',
+      'vr',
+      'augmented-reality',
+      'virtual-reality',
+      'xr',
+      'mixed-reality',
+      'metaverse',
+      'webxr',
+    ],
     matchKeywords: ['augmented-reality', 'virtual-reality', 'ar', 'vr'],
   },
   {
@@ -1385,7 +1500,16 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'Testing',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['testing', 'unit-testing', 'e2e', 'integration-testing', 'jest', 'cypress', 'playwright', 'pytest'],
+    matchTopics: [
+      'testing',
+      'unit-testing',
+      'e2e',
+      'integration-testing',
+      'jest',
+      'cypress',
+      'playwright',
+      'pytest',
+    ],
     matchKeywords: ['testing', 'test', 'jest', 'cypress', 'playwright'],
   },
   {
@@ -1409,7 +1533,13 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     displayName: 'Performance',
     category: 'domain',
     matchLanguages: [],
-    matchTopics: ['performance', 'optimization', 'web-performance', 'lighthouse', 'core-web-vitals'],
+    matchTopics: [
+      'performance',
+      'optimization',
+      'web-performance',
+      'lighthouse',
+      'core-web-vitals',
+    ],
     matchKeywords: ['performance', 'optimization'],
   },
   {
@@ -1796,4 +1926,4 @@ export const SEED_SKILLS: Omit<Skill, 'createdAt'>[] = [
     matchTopics: ['figma', 'figma-plugin', 'design-system'],
     matchKeywords: ['figma'],
   },
-]
+];

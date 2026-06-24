@@ -1,65 +1,66 @@
-import Link from "next/link"
-import type { LucideIcon } from "lucide-react"
-import { Eye, Github, GitCommit, GitPullRequest, MapPin, MessageSquare, User } from "lucide-react"
-import type { Developer } from "@/lib/data"
-import type { ContributionKind } from "@/lib/profile-prototype"
-import { ProfileMessageSidebar } from "@/components/profile-message-button"
+import type { ElementType } from 'react';
+import Link from 'next/link';
+import type { LucideIcon } from 'lucide-react';
+import { Eye, Github, GitCommit, GitPullRequest, MapPin, MessageSquare, User } from 'lucide-react';
+import type { Developer } from '@/lib/data';
+import type { ContributionKind, ProfileContribution } from '@/lib/profile-prototype';
+import { ProfileMessageSidebar } from '@/components/profile-message-button';
 
 const contributionIcon: Record<ContributionKind, LucideIcon> = {
   commit: GitCommit,
   pr: GitPullRequest,
   issue: MessageSquare,
   review: Eye,
-}
+};
 
 const contributionLabel: Record<ContributionKind, string> = {
-  commit: "Commit",
-  pr: "PR",
-  issue: "Issue",
-  review: "Review",
-}
+  commit: 'Commit',
+  pr: 'PR',
+  issue: 'Issue',
+  review: 'Review',
+};
 
 /** Match homepage Explore tags: lowercase, hyphenated */
 function reposTagHref(label: string) {
   const slug = label
     .toLowerCase()
     .trim()
-    .replace(/\s*\/\s*/g, "-")
-    .replace(/\s+/g, "-")
-  return `/repos?tag=${encodeURIComponent(slug)}`
+    .replace(/\s*\/\s*/g, '-')
+    .replace(/\s+/g, '-');
+  return `/repos?tag=${encodeURIComponent(slug)}`;
 }
 
 function contributionHref(repo: string) {
-  return `https://github.com/${repo}`
+  return `https://github.com/${repo}`;
 }
 
 interface UserProfileViewProps {
-  dev: Developer
-  bio?: string
-  weeklyRank?: number
-  weeklyScore?: number
-  skillsStrong?: string[]
-  skillsAlso?: string[]
-  contributions?: any[]
+  dev: Developer;
+  bio?: string;
+  weeklyRank?: number;
+  weeklyScore?: number;
+  skillsStrong?: string[];
+  skillsAlso?: string[];
+  contributions?: ProfileContribution[];
   scores?: {
-    backend?: number
-    frontend?: number
-    devops?: number
-    data?: number
-    ai?: number
-    efficiency?: number
-  }
+    backend?: number;
+    frontend?: number;
+    devops?: number;
+    data?: number;
+    ai?: number;
+    efficiency?: number;
+  };
 }
 
-export function UserProfileView({ 
-  dev, 
-  bio, 
-  weeklyRank, 
-  weeklyScore, 
+export function UserProfileView({
+  dev,
+  bio,
+  weeklyRank,
+  weeklyScore,
   skillsStrong = [],
   skillsAlso = [],
   contributions = [],
-  scores
+  scores,
 }: UserProfileViewProps) {
   return (
     <>
@@ -116,13 +117,15 @@ export function UserProfileView({
                 Impact this week
               </h2>
               <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-3xl font-bold tabular-nums">#{weeklyRank || "?"}</span>
+                <span className="text-3xl font-bold tabular-nums">#{weeklyRank || '?'}</span>
                 <span className="text-muted-foreground text-sm">on the leaderboard</span>
               </div>
               <div className="mt-4 space-y-2 border-t border-dashed border-foreground/30 pt-4">
                 <p className="text-sm font-bold tabular-nums flex justify-between">
                   <span>Total Score</span>
-                  <span>{(weeklyScore || 0).toLocaleString("en-US", { maximumFractionDigits: 1 })}</span>
+                  <span>
+                    {(weeklyScore || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })}
+                  </span>
                 </p>
                 {scores && (
                   <div className="space-y-1 text-xs text-muted-foreground uppercase tracking-tight">
@@ -171,7 +174,9 @@ export function UserProfileView({
             </section>
 
             <section className="border-2 border-dashed border-foreground/70 p-5">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-highlight mb-4">Skills</h2>
+              <h2 className="text-sm font-bold uppercase tracking-wide text-highlight mb-4">
+                Skills
+              </h2>
               {skillsStrong.length > 0 && (
                 <>
                   <p className="text-xs text-muted-foreground mb-2">Strong in</p>
@@ -214,7 +219,7 @@ export function UserProfileView({
             <div className="divide-y divide-foreground">
               {contributions.length === 0 && (
                 <p className="px-4 sm:px-5 py-8 text-sm text-muted-foreground">
-                  No public contribution data available for{" "}
+                  No public contribution data available for{' '}
                   <a
                     href={`https://github.com/${dev.username}`}
                     target="_blank"
@@ -222,23 +227,23 @@ export function UserProfileView({
                     className="hover:text-highlight hover:underline underline-offset-4"
                   >
                     {dev.username}
-                  </a>{" "}
+                  </a>{' '}
                   yet.
                 </p>
               )}
               {contributions.map((c, i) => {
-                const kind = c.kind as ContributionKind
-                const Icon = contributionIcon[kind] || GitCommit
+                const kind = c.kind as ContributionKind;
+                const Icon = contributionIcon[kind] || GitCommit;
                 // Only link out to GitHub when we have a valid "owner/repo" slug.
-                const hasValidRepo = typeof c.repo === "string" && c.repo.includes("/")
+                const hasValidRepo = typeof c.repo === 'string' && c.repo.includes('/');
                 const linkProps = hasValidRepo
                   ? {
                       href: contributionHref(c.repo),
-                      target: "_blank",
-                      rel: "noopener noreferrer",
+                      target: '_blank',
+                      rel: 'noopener noreferrer',
                     }
-                  : {}
-                const Wrapper: any = hasValidRepo ? Link : "div"
+                  : {};
+                const Wrapper: ElementType = hasValidRepo ? Link : 'div';
                 return (
                   <Wrapper
                     key={`${c.repo}-${c.title || i}-${i}`}
@@ -246,26 +251,22 @@ export function UserProfileView({
                     className="flex items-start gap-3 py-[11px] px-4 sm:px-5 hover:bg-foreground/[0.03]"
                   >
                     <div className="border border-foreground p-1.5 shrink-0 mt-0.5">
-                      <Icon
-                        className="w-3.5 h-3.5 text-highlight"
-                        aria-hidden
-                        strokeWidth={2.5}
-                      />
+                      <Icon className="w-3.5 h-3.5 text-highlight" aria-hidden strokeWidth={2.5} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                         <span className="text-xs font-bold uppercase tracking-wide text-highlight">
-                          {contributionLabel[kind] || "Repo"}
+                          {contributionLabel[kind] || 'Repo'}
                         </span>
                         <span className="text-sm font-mono break-all text-muted-foreground">
                           {c.repo}
                         </span>
                       </div>
-                      <p className="text-sm mt-1 leading-snug">{c.title || "Latest activity"}</p>
+                      <p className="text-sm mt-1 leading-snug">{c.title || 'Latest activity'}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0 pt-0.5">
                       <span className="text-xs text-muted-foreground tabular-nums">
-                        {c.time || "Recent"}
+                        {c.time || 'Recent'}
                       </span>
                       {c.score !== undefined && (
                         <span className="text-[10px] font-bold bg-foreground/5 border border-foreground/10 px-1 py-0.5 rounded-sm tabular-nums">
@@ -274,7 +275,7 @@ export function UserProfileView({
                       )}
                     </div>
                   </Wrapper>
-                )
+                );
               })}
             </div>
           </section>
@@ -290,10 +291,11 @@ export function UserProfileView({
       <footer className="border-t-2 border-dashed border-foreground/70 py-6">
         <div className="layout-container text-center text-sm">
           <p>
-            © 2026 <span className="text-brand">hackerhou.se</span>. A home for <span className="text-highlight">human</span> programmers.
+            © 2026 <span className="text-brand">hackerhou.se</span>. A home for{' '}
+            <span className="text-highlight">human</span> programmers.
           </p>
         </div>
       </footer>
     </>
-  )
+  );
 }

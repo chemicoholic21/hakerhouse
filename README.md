@@ -7,6 +7,7 @@ A platform that unites developers by analyzing actual GitHub activity to build p
 **Prerequisites:** Node.js 20+, npm/pnpm, PostgreSQL, and GitHub OAuth app credentials.
 
 **1. Environment Variables** Create a `.env.local` file in the root directory:
+
 ```env
 # Database
 DATABASE_URL="postgresql://..."
@@ -24,6 +25,7 @@ NEXTAUTH_URL="http://localhost:3000"
 ```
 
 **2. Installation & Running**
+
 ```bash
 # Install dependencies
 npm install
@@ -36,19 +38,20 @@ npm run db:compute-skills
 # Start dev server
 npm run dev
 ```
+
 Open `http://localhost:3000` to view the app.
 
 ## Scripts
 
-* `npm run dev` - Start development server
-* `npm run build` - Create production build
-* `npm run start` - Start production server
-* `npm run lint` - Run ESLint checks
-* `npm run db:compute-skills` - Recalculate and update user skill scores in the database
+- `npm run dev` - Start development server
+- `npm run build` - Create production build
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint checks
+- `npm run db:compute-skills` - Recalculate and update user skill scores in the database
 
 ## Core Structure
 
-* `app/` - Next.js App Router containing pages, API routes, and developer profiles.
-* `components/` - React components, including shadcn/ui and visualizations.
-* `lib/` - Core logic, including database schema, raw SQL query builder, and utilities.
-* `scripts/` - Standalone backend scripts for data processing.
+- `app/` - Next.js App Router containing pages, API routes, and developer profiles.
+- `components/` - React components, including shadcn/ui and visualizations.
+- `lib/` - Core logic, including database schema, raw SQL query builder, and utilities.
+- `scripts/` - Standalone backend scripts for data processing.

@@ -1,5 +1,5 @@
-import Link from "next/link"
-import { HouseIllustration } from "@/components/house-illustration"
+import Link from 'next/link';
+import { HouseIllustration } from '@/components/house-illustration';
 
 export function Hero() {
   return (
@@ -12,7 +12,7 @@ export function Hero() {
             className="w-full h-auto"
           />
         </div>
-        
+
         <div className="flex-1 text-center lg:text-left">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-balance leading-tight">
             a home for <span className="text-highlight">human</span> programmers
@@ -37,5 +37,5 @@ export function Hero() {
         </div>
       </div>
     </section>
-  )
+  );
 }

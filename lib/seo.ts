@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata } from 'next';
 
-const BASE_URL = "https://hackerhou.se";
+const BASE_URL = 'https://hackerhou.se';
 
 interface BuildPageMetadataProps {
   title?: string;
@@ -12,18 +12,18 @@ interface BuildPageMetadataProps {
 
 export function buildPageMetadata({
   title,
-  description = "A platform for hackers to build and grow.",
-  path = "",
-  image = "/opengraph-image", // Default OG image path
-  keywords = ["hacker", "house", "build", "community", "devs"],
+  description = 'A platform for hackers to build and grow.',
+  path = '',
+  image = '/opengraph-image', // Default OG image path
+  keywords = ['hacker', 'house', 'build', 'community', 'devs'],
 }: BuildPageMetadataProps = {}): Metadata {
   const url = `${BASE_URL}${path}`;
-  const fullTitle = title ? `${title} | Kerhouse` : "Kerhouse - Build and Grow";
+  const fullTitle = title ? `${title} | Kerhouse` : 'Kerhouse - Build and Grow';
 
   return {
     title: fullTitle,
     description,
-    keywords: keywords.join(", "),
+    keywords: keywords.join(', '),
     alternates: {
       canonical: url,
     },
@@ -31,22 +31,22 @@ export function buildPageMetadata({
       title: fullTitle,
       description,
       url,
-      siteName: "Kerhouse",
+      siteName: 'Kerhouse',
       images: [
         {
-          url: image.startsWith("http") ? image : `${BASE_URL}${image}`,
+          url: image.startsWith('http') ? image : `${BASE_URL}${image}`,
           width: 1200,
           height: 630,
           alt: fullTitle,
         },
       ],
-      type: "website",
+      type: 'website',
     },
     twitter: {
-      card: "summary_large_image",
+      card: 'summary_large_image',
       title: fullTitle,
       description,
-      images: [image.startsWith("http") ? image : `${BASE_URL}${image}`],
+      images: [image.startsWith('http') ? image : `${BASE_URL}${image}`],
     },
   };
 }

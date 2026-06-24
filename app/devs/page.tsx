@@ -1,8 +1,8 @@
-import { Header } from "@/components/header"
-import { sql } from "@/lib/db"
-import { DevsList, type DevRow } from "@/components/devs-list"
-import { languages, countries } from "@/lib/data"
-import { buildPageMetadata } from "@/lib/seo"
+import { Header } from '@/components/header';
+import { sql } from '@/lib/db';
+import { DevsList, type DevRow } from '@/components/devs-list';
+import { languages, countries } from '@/lib/data';
+import { buildPageMetadata } from '@/lib/seo';
 import {
   buildWhereClause,
   validateCondition,
@@ -10,45 +10,44 @@ import {
   getOrderByClause,
   getSkillSelectFragment,
   buildPaginationClause,
-} from "@/lib/query-builder"
+} from '@/lib/query-builder';
 
 export const metadata = buildPageMetadata({
-  title: "Developers",
-  description: "Meet the developers building the future of open source.",
-  path: "/devs",
-})
+  title: 'Developers',
+  description: 'Meet the developers building the future of open source.',
+  path: '/devs',
+});
 
-const ITEMS_PER_PAGE = 50
+const ITEMS_PER_PAGE = 50;
 
 interface SkillOption {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 interface SkillRow {
-  slug: string
-  display_name: string
-  user_count: number
+  slug: string;
+  display_name: string;
+  user_count: number;
 }
 
 interface LeaderboardRow {
-  name: string | null
-  username: string
-  country: string | null
-  score: number | null
-  skill_score?: number | null
+  name: string | null;
+  username: string;
+  country: string | null;
+  score: number | null;
+  skill_score?: number | null;
   // text[] column returned by Neon as a JS array; languages_json is JSONB
-  unique_skills: string[] | null
-  languages_json: string | string[] | Record<string, unknown> | null
+  unique_skills: string[] | null;
+  languages_json: string | string[] | Record<string, unknown> | null;
 }
-
 
 /**
  * Fetch skills list from the database
  * Only shows skills that have at least one user with a computed score
  */
 async function getSkillsList(): Promise<SkillOption[]> {
-  const skills = await sql`
+  const skills = (await sql`
     SELECT s.slug, s.display_name, COUNT(uss.username) as user_count
     FROM skills s
     INNER JOIN user_skill_scores uss ON s.slug = uss.skill_slug
@@ -64,58 +63,65 @@ async function getSkillsList(): Promise<SkillOption[]> {
         ELSE 6
       END,
       COUNT(uss.username) DESC
-  ` as SkillRow[]
+  `) as SkillRow[];
   return [
     { value: 'all', label: 'All' },
-    ...skills.map((s) => ({ value: s.slug, label: `${s.display_name} (${s.user_count})` }))
-  ]
+    ...skills.map((s) => ({ value: s.slug, label: `${s.display_name} (${s.user_count})` })),
+  ];
 }
-
 
 async function getDevs(
   page: number,
-  filters: { skill?: string; language?: string; country?: string; openTo?: string; username?: string; location?: string; topics?: string[] }
+  filters: {
+    skill?: string;
+    language?: string;
+    country?: string;
+    openTo?: string;
+    username?: string;
+    location?: string;
+    topics?: string[];
+  }
 ) {
-  const offset = (page - 1) * ITEMS_PER_PAGE
+  const offset = (page - 1) * ITEMS_PER_PAGE;
 
   // Check if we're filtering by skill using the new scoring system
-  const useSkillScoring = !!(filters.skill && filters.skill !== 'all')
+  const useSkillScoring = !!(filters.skill && filters.skill !== 'all');
 
   // Base conditions - all conditions use parameterized values
-  const conditions: string[] = []
-  const params: (string | number)[] = []
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
 
   // When filtering by skill, we JOIN on user_skill_scores
   // Note: useSkillScoring already ensures filters.skill is defined and not 'all'
   if (useSkillScoring && filters.skill) {
-    const condition = `uss.skill_slug = $${params.length + 1}`
+    const condition = `uss.skill_slug = $${params.length + 1}`;
     if (validateCondition(condition)) {
-      conditions.push(condition)
-      params.push(filters.skill)
+      conditions.push(condition);
+      params.push(filters.skill);
     }
   }
 
   if (filters.language && filters.language !== 'all') {
-    const condition = `a.languages_json::text ILIKE $${params.length + 1}`
+    const condition = `a.languages_json::text ILIKE $${params.length + 1}`;
     if (validateCondition(condition)) {
-      conditions.push(condition)
-      params.push(`%${filters.language}%`)
+      conditions.push(condition);
+      params.push(`%${filters.language}%`);
     }
   }
 
   if (filters.country && filters.country !== 'all') {
-    const condition = `l.location ILIKE $${params.length + 1}`
+    const condition = `l.location ILIKE $${params.length + 1}`;
     if (validateCondition(condition)) {
-      conditions.push(condition)
-      params.push(`%${filters.country}%`)
+      conditions.push(condition);
+      params.push(`%${filters.country}%`);
     }
   }
 
   if (filters.location) {
-    const condition = `l.location ILIKE $${params.length + 1}`
+    const condition = `l.location ILIKE $${params.length + 1}`;
     if (validateCondition(condition)) {
-      conditions.push(condition)
-      params.push(`%${filters.location}%`)
+      conditions.push(condition);
+      params.push(`%${filters.location}%`);
     }
   }
 
@@ -125,39 +131,39 @@ async function getDevs(
     // - Single UNION query instead of OR with two EXISTS
     // - Performance: ~100-150ms vs ~700-900ms with old approach
     for (const topic of filters.topics) {
-      const paramIdx1 = params.length + 1
-      const paramIdx2 = params.length + 2
+      const paramIdx1 = params.length + 1;
+      const paramIdx2 = params.length + 2;
       const condition = `l.username IN (
         SELECT username FROM user_skill_scores WHERE skill_slug = $${paramIdx1}
         UNION
         SELECT username FROM user_repo_topics WHERE topic = $${paramIdx2}
-      )`
+      )`;
       if (validateCondition(condition)) {
-        conditions.push(condition)
-        params.push(topic)
-        params.push(topic)
+        conditions.push(condition);
+        params.push(topic);
+        params.push(topic);
       }
     }
   }
 
   if (filters.username) {
     // Need separate parameter placeholders for each ILIKE comparison
-    const paramIdx1 = params.length + 1
-    const paramIdx2 = params.length + 2
-    const condition = `(l.username ILIKE $${paramIdx1} OR l.name ILIKE $${paramIdx2})`
+    const paramIdx1 = params.length + 1;
+    const paramIdx2 = params.length + 2;
+    const condition = `(l.username ILIKE $${paramIdx1} OR l.name ILIKE $${paramIdx2})`;
     if (validateCondition(condition)) {
-      conditions.push(condition)
-      params.push(`%${filters.username}%`)
-      params.push(`%${filters.username}%`)
+      conditions.push(condition);
+      params.push(`%${filters.username}%`);
+      params.push(`%${filters.username}%`);
     }
   }
 
   // Use type-safe query fragments
-  const whereClause = buildWhereClause(conditions)
-  const skillJoin = getSkillJoinClause(useSkillScoring)
-  const orderBy = getOrderByClause(useSkillScoring)
-  const skillSelect = getSkillSelectFragment(useSkillScoring)
-  const pagination = buildPaginationClause(ITEMS_PER_PAGE, offset)
+  const whereClause = buildWhereClause(conditions);
+  const skillJoin = getSkillJoinClause(useSkillScoring);
+  const orderBy = getOrderByClause(useSkillScoring);
+  const skillSelect = getSkillSelectFragment(useSkillScoring);
+  const pagination = buildPaginationClause(ITEMS_PER_PAGE, offset);
 
   const [countResult, dbData] = await Promise.all([
     sql.query(
@@ -188,85 +194,86 @@ async function getDevs(
       ${pagination}
       `,
       params
-    )
-  ])
+    ),
+  ]);
 
-  const totalItems = Number(countResult[0].count)
+  const totalItems = Number(countResult[0].count);
 
   const devs: DevRow[] = (dbData as LeaderboardRow[]).map((row) => {
-    let skills: string[] = []
+    let skills: string[] = [];
     try {
       if (row.unique_skills) {
         // unique_skills is a Postgres text[] returned by Neon as a JS array
-        const skillsData = Array.isArray(row.unique_skills)
-          ? row.unique_skills
-          : []
+        const skillsData = Array.isArray(row.unique_skills) ? row.unique_skills : [];
         if (Array.isArray(skillsData)) {
-          skills = skillsData
+          skills = skillsData;
         }
       }
     } catch (e) {
-      console.error("Failed to parse skills for", row.username, e)
+      console.error('Failed to parse skills for', row.username, e);
     }
 
-    let language = "Unknown"
+    let language = 'Unknown';
     try {
       if (row.languages_json) {
         // JSONB columns may be returned as already-parsed objects by Neon
-        const langs = typeof row.languages_json === 'string'
-          ? JSON.parse(row.languages_json)
-          : row.languages_json
+        const langs =
+          typeof row.languages_json === 'string'
+            ? JSON.parse(row.languages_json)
+            : row.languages_json;
         if (Array.isArray(langs) && langs.length > 0) {
-          language = langs[0]
+          language = langs[0];
         } else if (typeof langs === 'object' && langs !== null) {
-          language = Object.keys(langs)[0] || "Unknown"
+          language = Object.keys(langs)[0] || 'Unknown';
         }
       }
     } catch (e) {
-      console.error("Failed to parse languages for", row.username, e)
+      console.error('Failed to parse languages for', row.username, e);
     }
 
     return {
       name: row.name || row.username,
       username: row.username,
-      country: row.country || "Unknown",
+      country: row.country || 'Unknown',
       // When filtering by skill, show the skill-specific score
       score: row.skill_score ?? row.score ?? 0,
       skills: skills,
       language: language,
-    }
-  })
+    };
+  });
 
   return {
     devs,
     totalItems,
-    totalPages: Math.ceil(totalItems / ITEMS_PER_PAGE)
-  }
+    totalPages: Math.ceil(totalItems / ITEMS_PER_PAGE),
+  };
 }
-
 
 export default async function DevsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const resolvedParams = await searchParams
-  const page = Number(resolvedParams.page) || 1
-  const skill = typeof resolvedParams.skill === 'string' ? resolvedParams.skill : undefined
-  const language = typeof resolvedParams.language === 'string' ? resolvedParams.language : undefined
-  const country = typeof resolvedParams.country === 'string' ? resolvedParams.country : undefined
-  const openTo = typeof resolvedParams.openTo === 'string' ? resolvedParams.openTo : undefined
-  const username = typeof resolvedParams.username === 'string' ? resolvedParams.username : undefined
-  const location = typeof resolvedParams.location === 'string' ? resolvedParams.location : undefined
+  const resolvedParams = await searchParams;
+  const page = Number(resolvedParams.page) || 1;
+  const skill = typeof resolvedParams.skill === 'string' ? resolvedParams.skill : undefined;
+  const language =
+    typeof resolvedParams.language === 'string' ? resolvedParams.language : undefined;
+  const country = typeof resolvedParams.country === 'string' ? resolvedParams.country : undefined;
+  const openTo = typeof resolvedParams.openTo === 'string' ? resolvedParams.openTo : undefined;
+  const username =
+    typeof resolvedParams.username === 'string' ? resolvedParams.username : undefined;
+  const location =
+    typeof resolvedParams.location === 'string' ? resolvedParams.location : undefined;
   // Parse topics from comma-separated string
-  const topicsParam = typeof resolvedParams.topics === 'string' ? resolvedParams.topics : undefined
-  const topics = topicsParam ? topicsParam.split(',').filter(Boolean) : undefined
+  const topicsParam = typeof resolvedParams.topics === 'string' ? resolvedParams.topics : undefined;
+  const topics = topicsParam ? topicsParam.split(',').filter(Boolean) : undefined;
 
   // Fetch devs and skills list in parallel
   const [{ devs, totalItems, totalPages }, skillsList] = await Promise.all([
     getDevs(page, { skill, language, country, openTo, username, location, topics }),
-    getSkillsList()
-  ])
+    getSkillsList(),
+  ]);
 
   return (
     <div className="min-h-screen">
@@ -282,7 +289,7 @@ export default async function DevsPage({
             currentPage: page,
             totalPages,
             totalItems,
-            itemsPerPage: ITEMS_PER_PAGE
+            itemsPerPage: ITEMS_PER_PAGE,
           }}
         />
       </main>
@@ -290,10 +297,11 @@ export default async function DevsPage({
       <footer className="border-t-2 border-dashed border-foreground/70 py-6">
         <div className="layout-container text-center text-sm">
           <p>
-            © 2026 <span className="text-brand">hackerhou.se</span>. A home for <span className="text-highlight">human</span> programmers.
+            © 2026 <span className="text-brand">hackerhou.se</span>. A home for{' '}
+            <span className="text-highlight">human</span> programmers.
           </p>
         </div>
       </footer>
     </div>
-  )
+  );
 }

@@ -1,14 +1,14 @@
 // app/actions.ts
-"use server"
+'use server';
 
-import { sql } from "@/lib/db"
+import { sql } from '@/lib/db';
 
 export type MemberProfile = {
-  username: string
-  name: string
-  location: string | null
-  score: number
-}
+  username: string;
+  name: string;
+  location: string | null;
+  score: number;
+};
 
 export async function getActiveMembers(limit = 20): Promise<MemberProfile[]> {
   const rows = await sql`
@@ -17,11 +17,11 @@ export async function getActiveMembers(limit = 20): Promise<MemberProfile[]> {
     WHERE total_score > 0
     ORDER BY total_score DESC
     LIMIT ${limit}
-  `
+  `;
   return rows.map((r) => ({
     username: r.username,
     name: r.name || r.username,
     location: r.location,
     score: Number(r.score),
-  }))
+  }));
 }
