@@ -1,22 +1,22 @@
-import { Header } from "@/components/header"
-import { TrendingRepos } from "@/components/trending-repos"
-import { buildPageMetadata } from "@/lib/seo"
-import type { TrendingRepo } from "@/app/api/github/repos/route"
-import { neon } from "@neondatabase/serverless"
+import { Header } from '@/components/header';
+import { TrendingRepos } from '@/components/trending-repos';
+import { buildPageMetadata } from '@/lib/seo';
+import type { TrendingRepo } from '@/app/api/github/repos/route';
+import { neon } from '@neondatabase/serverless';
 
 export const metadata = buildPageMetadata({
-  title: "Repositories",
-  description: "Discover open source repositories ranked by contribution health scores.",
-  path: "/repos",
-})
+  title: 'Repositories',
+  description: 'Discover open source repositories ranked by contribution health scores.',
+  path: '/repos',
+});
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 async function getInitialRepos(): Promise<{ repos: TrendingRepo[]; total: number }> {
-  const sql = neon(process.env.DATABASE_URL!)
+  const sql = neon(process.env.DATABASE_URL!);
 
-  const countResult = await sql`SELECT count(*) FROM repo_health WHERE gated_reason IS NULL`
-  const total = parseInt(countResult[0].count, 10)
+  const countResult = await sql`SELECT count(*) FROM repo_health WHERE gated_reason IS NULL`;
+  const total = parseInt(countResult[0].count, 10);
 
   const rows = await sql`
     SELECT
@@ -53,7 +53,7 @@ async function getInitialRepos(): Promise<{ repos: TrendingRepo[]; total: number
     WHERE rh.gated_reason IS NULL
     ORDER BY rh.contribution_score DESC NULLS LAST
     LIMIT 30
-  `
+  `;
 
   const repos: TrendingRepo[] = rows.map((row) => ({
     name: row.repo_name,
@@ -85,13 +85,13 @@ async function getInitialRepos(): Promise<{ repos: TrendingRepo[]; total: number
     lastReleaseAt: row.last_release_at,
     mergeVelocityPerMonth: row.merge_velocity_per_month,
     gatedReason: row.gated_reason,
-  }))
+  }));
 
-  return { repos, total }
+  return { repos, total };
 }
 
 export default async function ReposPage() {
-  const { repos, total } = await getInitialRepos()
+  const { repos, total } = await getInitialRepos();
 
   return (
     <div className="min-h-screen">
@@ -104,10 +104,11 @@ export default async function ReposPage() {
       <footer className="border-t-2 border-dashed border-foreground/70 py-6">
         <div className="layout-container text-center text-sm">
           <p>
-            © 2026 <span className="text-brand">hackerhou.se</span>. A home for <span className="text-highlight">human</span> programmers.
+            © 2026 <span className="text-brand">hackerhou.se</span>. A home for{' '}
+            <span className="text-highlight">human</span> programmers.
           </p>
         </div>
       </footer>
     </div>
-  )
+  );
 }

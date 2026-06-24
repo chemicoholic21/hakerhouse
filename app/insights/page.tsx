@@ -1,57 +1,54 @@
-import { Header } from "@/components/header"
-import { TalentMap } from "@/components/insights/TalentMap"
-import { ImpactDistribution } from "@/components/insights/ImpactDistribution"
-import { EngineerDistribution } from "@/components/insights/EngineerDistribution"
-import { SkillsRadar } from "@/components/insights/SkillsRadar"
-import { ImpactTrend } from "@/components/insights/ImpactTrend"
-import { buildPageMetadata } from "@/lib/seo"
-import { GET as getMapRoute } from "@/app/api/insights/map/route"
-import { GET as getStatsRoute } from "@/app/api/insights/stats/route"
+import { Header } from '@/components/header';
+import { TalentMap } from '@/components/insights/TalentMap';
+import { ImpactDistribution } from '@/components/insights/ImpactDistribution';
+import { EngineerDistribution } from '@/components/insights/EngineerDistribution';
+import { SkillsRadar } from '@/components/insights/SkillsRadar';
+import { ImpactTrend } from '@/components/insights/ImpactTrend';
+import { buildPageMetadata } from '@/lib/seo';
+import { GET as getMapRoute } from '@/app/api/insights/map/route';
+import { GET as getStatsRoute } from '@/app/api/insights/stats/route';
 
 export const metadata = buildPageMetadata({
-  title: "Talent Map",
-  description: "Global open source developer clusters.",
-  path: "/insights",
-})
+  title: 'Talent Map',
+  description: 'Global open source developer clusters.',
+  path: '/insights',
+});
 
-export const revalidate = 3600 // Cache for 1 hour
+export const revalidate = 3600; // Cache for 1 hour
 
 async function getMapData() {
   try {
-    const res = await getMapRoute()
+    const res = await getMapRoute();
     if (!res.ok) {
-      return []
+      return [];
     }
-    return await res.json()
+    return await res.json();
   } catch (error) {
-    console.error("Failed to fetch map data:", error)
-    return []
+    console.error('Failed to fetch map data:', error);
+    return [];
   }
 }
 
 async function getStatsData() {
   try {
-    const res = await getStatsRoute()
+    const res = await getStatsRoute();
     if (!res.ok) {
-      return null
+      return null;
     }
-    return await res.json()
+    return await res.json();
   } catch (error) {
-    console.error("Failed to fetch stats data:", error)
-    return null
+    console.error('Failed to fetch stats data:', error);
+    return null;
   }
 }
 
 export default async function InsightsMapPage() {
-  const [mapData, statsData] = await Promise.all([
-    getMapData(),
-    getStatsData()
-  ])
+  const [mapData, statsData] = await Promise.all([getMapData(), getStatsData()]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-mono selection:bg-[#00E5CC] selection:text-[#0a0a0a]">
       <Header />
-      
+
       <main className="max-w-[1200px] mx-auto py-8 px-4 flex flex-col gap-4">
         {/* Dashboard Header */}
         <div className="border border-dashed border-[#6b7280] p-6 text-center mb-2">
@@ -61,32 +58,43 @@ export default async function InsightsMapPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4">
-          
           {/* Left Column */}
           <div className="flex flex-col gap-4">
             {/* Map Container */}
             <div className="border border-dashed border-[#6b7280] p-4 bg-[#0a0a0a]">
               <TalentMap data={mapData} />
-              
+
               {/* Map Footer Stats */}
               <div className="mt-6 flex flex-col md:flex-row justify-between text-xs text-gray-300 font-mono gap-4">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[#6b7280]">[<span className="text-[#00E5CC]">████████</span>{"  "}]</span>
+                    <span className="text-[#6b7280]">
+                      [<span className="text-[#00E5CC]">████████</span>
+                      {'  '}]
+                    </span>
                     <span>SF BAY AREA | 31.4% (312k Impact)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[#6b7280]">[<span className="text-[#00E5CC]">█████</span>{"     "}]</span>
-                    <span>LONDON      | 22.1% (219k Impact)</span>
+                    <span className="text-[#6b7280]">
+                      [<span className="text-[#00E5CC]">█████</span>
+                      {'     '}]
+                    </span>
+                    <span>LONDON | 22.1% (219k Impact)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[#6b7280]">[<span className="text-[#00E5CC]">████</span>{"      "}]</span>
-                    <span>BENGALURU   | 16.8% (167k Impact)</span>
+                    <span className="text-[#6b7280]">
+                      [<span className="text-[#00E5CC]">████</span>
+                      {'      '}]
+                    </span>
+                    <span>BENGALURU | 16.8% (167k Impact)</span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[#6b7280]">[<span className="text-[#00E5CC]">████</span>{"      "}]</span>
+                    <span className="text-[#6b7280]">
+                      [<span className="text-[#00E5CC]">████</span>
+                      {'      '}]
+                    </span>
                     <span>OTHER | 29.7%</span>
                   </div>
                 </div>
@@ -104,7 +112,6 @@ export default async function InsightsMapPage() {
 
           {/* Right Column */}
           <div className="flex flex-col gap-4">
-            
             {/* Community Impact Score Distribution */}
             <div className="border border-dashed border-[#6b7280] p-4">
               <h2 className="text-[#00E5CC] text-xs font-bold font-mono uppercase mb-4 flex items-center gap-2">
@@ -141,20 +148,18 @@ export default async function InsightsMapPage() {
                 </div>
               </div>
             </div>
-
           </div>
-
         </div>
       </main>
-      
+
       <footer className="border-t border-dashed border-[#1a1a1a] py-6 mt-12">
         <div className="layout-container text-center text-xs text-gray-500">
           <p>
-            © 2026 <span className="text-[#00E5CC]">hackerhou.se</span>. A home for <span className="text-white">human</span> programmers.
+            © 2026 <span className="text-[#00E5CC]">hackerhou.se</span>. A home for{' '}
+            <span className="text-white">human</span> programmers.
           </p>
         </div>
       </footer>
     </div>
-  )
+  );
 }
-

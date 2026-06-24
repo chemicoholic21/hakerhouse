@@ -1,17 +1,17 @@
-"use client"
+'use client';
 
-import { createContext, useContext, useState, ReactNode } from "react"
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface TerminalContextType {
-  isOpen: boolean
-  openTerminal: () => void
-  closeTerminal: () => void
+  isOpen: boolean;
+  openTerminal: () => void;
+  closeTerminal: () => void;
 }
 
-const TerminalContext = createContext<TerminalContextType | undefined>(undefined)
+const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
 
 export function TerminalProvider({ children }: { children: ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <TerminalContext.Provider
@@ -23,13 +23,13 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     >
       {children}
     </TerminalContext.Provider>
-  )
+  );
 }
 
 export function useTerminal() {
-  const context = useContext(TerminalContext)
+  const context = useContext(TerminalContext);
   if (!context) {
-    throw new Error("useTerminal must be used within a TerminalProvider")
+    throw new Error('useTerminal must be used within a TerminalProvider');
   }
-  return context
+  return context;
 }

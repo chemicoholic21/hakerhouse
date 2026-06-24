@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server"
-import { sql } from "@/lib/db"
+import { NextRequest, NextResponse } from 'next/server';
+import { sql } from '@/lib/db';
 
 /**
  * GET /api/topics?q=search_term
@@ -16,11 +16,11 @@ import { sql } from "@/lib/db"
  * - Trigram index (idx_rtc_topic_trgm) enables fast ILIKE searches (~20-30ms vs ~1500ms)
  */
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const query = searchParams.get("q")?.toLowerCase().trim() || ""
+  const searchParams = request.nextUrl.searchParams;
+  const query = searchParams.get('q')?.toLowerCase().trim() || '';
 
   if (query.length < 1) {
-    return NextResponse.json({ topics: [] })
+    return NextResponse.json({ topics: [] });
   }
 
   try {
@@ -64,24 +64,24 @@ export async function GET(request: NextRequest) {
       ) combined
       ORDER BY user_count DESC, label ASC
       LIMIT 20
-    `
+    `;
 
     interface TopicResult {
-      topic: string
-      label: string
-      source: string
-      user_count: number
+      topic: string;
+      label: string;
+      source: string;
+      user_count: number;
     }
 
     const topics = (results as TopicResult[]).map((r) => ({
       value: r.topic,
       label: r.label,
-      source: r.source
-    }))
+      source: r.source,
+    }));
 
-    return NextResponse.json({ topics })
+    return NextResponse.json({ topics });
   } catch (error) {
-    console.error("Error searching topics:", error)
-    return NextResponse.json({ topics: [], error: "Failed to search topics" }, { status: 500 })
+    console.error('Error searching topics:', error);
+    return NextResponse.json({ topics: [], error: 'Failed to search topics' }, { status: 500 });
   }
 }

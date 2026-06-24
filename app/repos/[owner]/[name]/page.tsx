@@ -1,33 +1,33 @@
-import { notFound } from "next/navigation"
-import type { Metadata } from "next"
-import Link from "next/link"
-import { Header } from "@/components/header"
-import { RepoDetailView } from "@/components/repo-detail-view"
-import { sql } from "@/lib/db"
-import { buildPageMetadata } from "@/lib/seo"
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { Header } from '@/components/header';
+import { RepoDetailView } from '@/components/repo-detail-view';
+import { sql } from '@/lib/db';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic';
 
 interface RepoPageProps {
-  params: Promise<{ owner: string; name: string }>
+  params: Promise<{ owner: string; name: string }>;
 }
 
 export async function generateMetadata({ params }: RepoPageProps): Promise<Metadata> {
-  const { owner, name } = await params
-  const fullName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`
+  const { owner, name } = await params;
+  const fullName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`;
 
   return buildPageMetadata({
     title: fullName,
     description: `Health breakdown and contribution metrics for ${fullName}.`,
     path: `/repos/${owner}/${name}`,
-  })
+  });
 }
 
 export default async function RepoDetailPage({ params }: RepoPageProps) {
-  const { owner: rawOwner, name: rawName } = await params
-  const owner = decodeURIComponent(rawOwner)
-  const name = decodeURIComponent(rawName)
-  const fullName = `${owner}/${name}`
+  const { owner: rawOwner, name: rawName } = await params;
+  const owner = decodeURIComponent(rawOwner);
+  const name = decodeURIComponent(rawName);
+  const fullName = `${owner}/${name}`;
 
   const [healthRow] = await sql`
     SELECT
@@ -66,16 +66,16 @@ export default async function RepoDetailPage({ params }: RepoPageProps) {
     FROM repo_health
     WHERE owner_login = ${owner} AND repo_name = ${name}
     LIMIT 1
-  `
+  `;
 
-  if (!healthRow) notFound()
+  if (!healthRow) notFound();
 
   const [repoRow] = await sql`
     SELECT description, forks, topics, created_at
     FROM github_repos
     WHERE full_name = ${fullName}
     LIMIT 1
-  `
+  `;
 
   const repo = {
     fullName: healthRow.full_name,
@@ -122,17 +122,14 @@ export default async function RepoDetailPage({ params }: RepoPageProps) {
       mentionableUsers: healthRow.mentionable_users,
     },
     scoredAt: healthRow.scored_at,
-  }
+  };
 
   return (
     <div className="min-h-screen">
       <Header />
       <main className="layout-container py-8">
         <div className="mb-6">
-          <Link
-            href="/repos"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
+          <Link href="/repos" className="text-sm text-muted-foreground hover:text-foreground">
             ← Back to Repos
           </Link>
         </div>
@@ -142,10 +139,11 @@ export default async function RepoDetailPage({ params }: RepoPageProps) {
       <footer className="border-t-2 border-dashed border-foreground/70 py-6">
         <div className="layout-container text-center text-sm">
           <p>
-            © 2026 <span className="text-brand">hackerhou.se</span>. A home for <span className="text-highlight">human</span> programmers.
+            © 2026 <span className="text-brand">hackerhou.se</span>. A home for{' '}
+            <span className="text-highlight">human</span> programmers.
           </p>
         </div>
       </footer>
     </div>
-  )
+  );
 }

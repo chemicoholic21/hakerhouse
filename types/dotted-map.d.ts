@@ -1,7 +1,7 @@
-declare module "dotted-map" {
+declare module 'dotted-map' {
   interface DottedMapOptions {
     height?: number;
-    grid?: "vertical" | "diagonal";
+    grid?: 'vertical' | 'diagonal';
     countries?: string[];
   }
 
@@ -18,7 +18,7 @@ declare module "dotted-map" {
   interface SVGOptions {
     radius?: number;
     color?: string;
-    shape?: "circle" | "hexagon";
+    shape?: 'circle' | 'hexagon';
     backgroundColor?: string;
   }
 

@@ -1,46 +1,46 @@
-"use client"
+'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react"
-import { useAuth } from "./auth-provider"
-import { MessageChatDock } from "./message-chat-dock"
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useAuth } from './auth-provider';
+import { MessageChatDock } from './message-chat-dock';
 
 type MessageDockContextValue = {
-  openInbox: () => void
-  openMessageDock: (peerUsername: string) => void
-  closeMessageDock: () => void
-  isOpen: boolean
+  openInbox: () => void;
+  openMessageDock: (peerUsername: string) => void;
+  closeMessageDock: () => void;
+  isOpen: boolean;
   /** `null` when the dock is showing the inbox list */
-  peerUsername: string | null
-}
+  peerUsername: string | null;
+};
 
-const MessageDockContext = createContext<MessageDockContextValue | undefined>(undefined)
+const MessageDockContext = createContext<MessageDockContextValue | undefined>(undefined);
 
 export function MessageDockProvider({ children }: { children: ReactNode }) {
-  const { session } = useAuth()
-  const [peerUsername, setPeerUsername] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
+  const { session } = useAuth();
+  const [peerUsername, setPeerUsername] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!session) {
-      setOpen(false)
-      setPeerUsername(null)
+      setOpen(false);
+      setPeerUsername(null);
     }
-  }, [session])
+  }, [session]);
 
   const openInbox = useCallback(() => {
-    setPeerUsername(null)
-    setOpen(true)
-  }, [])
+    setPeerUsername(null);
+    setOpen(true);
+  }, []);
 
   const openMessageDock = useCallback((peer: string) => {
-    setPeerUsername(peer)
-    setOpen(true)
-  }, [])
+    setPeerUsername(peer);
+    setOpen(true);
+  }, []);
 
   const closeMessageDock = useCallback(() => {
-    setOpen(false)
-    setPeerUsername(null)
-  }, [])
+    setOpen(false);
+    setPeerUsername(null);
+  }, []);
 
   const value: MessageDockContextValue = {
     openInbox,
@@ -48,7 +48,7 @@ export function MessageDockProvider({ children }: { children: ReactNode }) {
     closeMessageDock,
     isOpen: open,
     peerUsername,
-  }
+  };
 
   return (
     <MessageDockContext.Provider value={value}>
@@ -64,13 +64,13 @@ export function MessageDockProvider({ children }: { children: ReactNode }) {
         />
       ) : null}
     </MessageDockContext.Provider>
-  )
+  );
 }
 
 export function useMessageDock() {
-  const ctx = useContext(MessageDockContext)
+  const ctx = useContext(MessageDockContext);
   if (!ctx) {
-    throw new Error("useMessageDock must be used within a MessageDockProvider")
+    throw new Error('useMessageDock must be used within a MessageDockProvider');
   }
-  return ctx
+  return ctx;
 }

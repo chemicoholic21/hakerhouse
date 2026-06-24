@@ -1,42 +1,42 @@
-import { Header } from "@/components/header"
-import { buildPageMetadata } from "@/lib/seo"
-import { sql } from "@/lib/db"
+import { Header } from '@/components/header';
+import { buildPageMetadata } from '@/lib/seo';
+import { sql } from '@/lib/db';
 
 export const metadata = buildPageMetadata({
-  title: "Analytics",
-  description: "Live database statistics for repos, profiles, and scraper health.",
-  path: "/analytics",
-})
+  title: 'Analytics',
+  description: 'Live database statistics for repos, profiles, and scraper health.',
+  path: '/analytics',
+});
 
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic';
 
 interface RepoStats {
-  total_repos: number
-  distinct_owners: number
-  forks_of_others: number
-  stars_100plus: number
-  scraped_24h: number
+  total_repos: number;
+  distinct_owners: number;
+  forks_of_others: number;
+  stars_100plus: number;
+  scraped_24h: number;
 }
 
 interface ProfileStats {
-  total_profiles: number
-  stale_remaining: number
-  fresh: number
-  refreshed_24h: number
-  pct_fresh: number | null
+  total_profiles: number;
+  stale_remaining: number;
+  fresh: number;
+  refreshed_24h: number;
+  pct_fresh: number | null;
 }
 
 interface HealthStats {
-  total_scored: number
-  avg_score: number | null
-  top_lang: string | null
-  active_repos: number
+  total_scored: number;
+  avg_score: number | null;
+  top_lang: string | null;
+  active_repos: number;
 }
 
 interface PRStats {
-  total_prs: number
-  merged_prs: number
-  unique_contributors: number
+  total_prs: number;
+  merged_prs: number;
+  unique_contributors: number;
 }
 
 async function getRepoStats(): Promise<RepoStats> {
@@ -48,8 +48,8 @@ async function getRepoStats(): Promise<RepoStats> {
       COUNT(*) FILTER (WHERE stars >= 100) AS stars_100plus,
       COUNT(*) FILTER (WHERE scraped_at >= NOW() - INTERVAL '24 hours') AS scraped_24h
     FROM github_repos
-  `
-  return row as unknown as RepoStats
+  `;
+  return row as unknown as RepoStats;
 }
 
 async function getProfileStats(): Promise<ProfileStats> {
@@ -70,8 +70,8 @@ async function getProfileStats(): Promise<ProfileStats> {
       ) AS pct_fresh
     FROM leaderboard l
     LEFT JOIN github_users gu ON gu.username = l.username
-  `
-  return row as unknown as ProfileStats
+  `;
+  return row as unknown as ProfileStats;
 }
 
 async function getHealthStats(): Promise<HealthStats> {
@@ -87,8 +87,8 @@ async function getHealthStats(): Promise<HealthStats> {
       COUNT(*) FILTER (WHERE pushed_at >= NOW() - INTERVAL '30 days') AS active_repos
     FROM repo_health
     WHERE gated_reason IS NULL
-  `
-  return row as unknown as HealthStats
+  `;
+  return row as unknown as HealthStats;
 }
 
 async function getPRStats(): Promise<PRStats> {
@@ -98,8 +98,8 @@ async function getPRStats(): Promise<PRStats> {
       COUNT(*) FILTER (WHERE merged_at IS NOT NULL) AS merged_prs,
       COUNT(DISTINCT username) AS unique_contributors
     FROM github_pull_requests
-  `
-  return row as unknown as PRStats
+  `;
+  return row as unknown as PRStats;
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
@@ -109,18 +109,15 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
       <div className="text-2xl font-bold tabular-nums">{value}</div>
       {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
     </div>
-  )
+  );
 }
 
 function ProgressBar({ pct }: { pct: number }) {
   return (
     <div className="h-2 bg-foreground/10 w-full mt-2">
-      <div
-        className="h-full bg-foreground/60"
-        style={{ width: `${Math.min(pct, 100)}%` }}
-      />
+      <div className="h-full bg-foreground/60" style={{ width: `${Math.min(pct, 100)}%` }} />
     </div>
-  )
+  );
 }
 
 export default async function AnalyticsPage() {
@@ -129,7 +126,7 @@ export default async function AnalyticsPage() {
     getProfileStats(),
     getHealthStats(),
     getPRStats(),
-  ])
+  ]);
 
   return (
     <div className="min-h-screen">
@@ -162,10 +159,10 @@ export default async function AnalyticsPage() {
             <StatCard label="Stale" value={profileStats.stale_remaining.toLocaleString()} />
             <StatCard label="Refreshed 24h" value={profileStats.refreshed_24h.toLocaleString()} />
             <div className="border-2 border-foreground p-4">
-              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">% Fresh</div>
-              <div className="text-2xl font-bold tabular-nums">
-                {profileStats.pct_fresh ?? 0}%
+              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+                % Fresh
               </div>
+              <div className="text-2xl font-bold tabular-nums">{profileStats.pct_fresh ?? 0}%</div>
               <ProgressBar pct={profileStats.pct_fresh ?? 0} />
             </div>
           </div>
@@ -176,8 +173,8 @@ export default async function AnalyticsPage() {
           <h2 className="text-lg font-bold mb-4 text-highlight">Repo Health</h2>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard label="Scored Repos" value={healthStats.total_scored.toLocaleString()} />
-            <StatCard label="Avg Score" value={healthStats.avg_score ?? "—"} />
-            <StatCard label="Top Language" value={healthStats.top_lang ?? "—"} />
+            <StatCard label="Avg Score" value={healthStats.avg_score ?? '—'} />
+            <StatCard label="Top Language" value={healthStats.top_lang ?? '—'} />
             <StatCard label="Active (30d)" value={healthStats.active_repos.toLocaleString()} />
           </div>
         </section>
@@ -196,10 +193,11 @@ export default async function AnalyticsPage() {
       <footer className="border-t-2 border-dashed border-foreground/70 py-6">
         <div className="layout-container text-center text-sm">
           <p>
-            © 2026 <span className="text-brand">hackerhou.se</span>. A home for <span className="text-highlight">human</span> programmers.
+            © 2026 <span className="text-brand">hackerhou.se</span>. A home for{' '}
+            <span className="text-highlight">human</span> programmers.
           </p>
         </div>
       </footer>
     </div>
-  )
+  );
 }

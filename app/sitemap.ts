@@ -1,8 +1,8 @@
-import { MetadataRoute } from 'next'
-import { developers } from '@/lib/data'
+import { MetadataRoute } from 'next';
+import { developers } from '@/lib/data';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://hackerhou.se'
+  const baseUrl = 'https://hackerhou.se';
 
   // Dynamic routes for developers
   const developerRoutes = developers.map((dev) => ({
@@ -10,7 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,
     priority: 0.8,
-  }))
+  }));
 
   return [
     {
@@ -20,5 +20,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     ...developerRoutes,
-  ]
+  ];
 }
