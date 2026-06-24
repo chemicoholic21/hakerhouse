@@ -1,5 +1,13 @@
 // lib/rate-limit.ts
-// Simple in-memory rate limiting (no Redis required)
+// Simple in-memory rate limiting (no Redis required).
+//
+// LIMITATION (statelessness): the store below lives in a single process's
+// memory. On a serverless/multi-instance deployment each instance keeps its
+// own counters and they reset on cold start, so the effective limit scales
+// with the number of instances and can be bypassed by spreading requests.
+// This is acceptable as a basic abuse guard, but for real enforcement move the
+// store to a shared backing service (e.g. Redis — already used by the
+// github-data-pipeline) and keep this module's function signatures unchanged.
 
 interface RateLimitEntry {
   count: number;
