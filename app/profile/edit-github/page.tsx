@@ -396,8 +396,8 @@ export default function EditGithubProfilePage() {
               </pre>
             </div>
           ) : (
-            <div className="rounded-md border overflow-hidden bg-white">
-              <div className="flex items-center gap-2 border-b bg-[#f6f8fa] px-4 py-2 text-sm text-[#57606a]">
+            <div className="rounded-md border border-[#d1d9e0] dark:border-[#30363d] overflow-hidden bg-white dark:bg-[#0d1117]">
+              <div className="flex items-center gap-2 border-b border-[#d1d9e0] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] px-4 py-2 text-sm text-[#57606a] dark:text-[#9198a1]">
                 <Github className="w-4 h-4" />
                 <span className="font-mono">
                   {githubUsername}/{githubUsername}
